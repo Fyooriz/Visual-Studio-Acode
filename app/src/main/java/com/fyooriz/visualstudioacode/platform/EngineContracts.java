@@ -12,6 +12,7 @@ public final class EngineContracts {
     public record Range(Position start, Position end) {}
     public record Diagnostic(Range range, int severity, String message, String source) {}
     public record Edit(Range range, String replacement) {}
+    public record TerminalResult(int exitCode, String output) {}
 
     public interface LanguageService {
         CompletableFuture<List<Diagnostic>> diagnostics(Document document);
@@ -25,10 +26,12 @@ public final class EngineContracts {
     public interface TaskExecutor {
         CompletableFuture<Integer> execute(String command, List<String> args, String workingDirectory);
     }
+    /**
+     * One-shot command boundary. Interactive sessions are intentionally not exposed
+     * until a sandboxed session implementation is available.
+     */
     public interface TerminalBackend {
-        CompletableFuture<String> start(String workingDirectory);
-        CompletableFuture<Void> write(String sessionId, String input);
-        CompletableFuture<Void> stop(String sessionId);
+        CompletableFuture<TerminalResult> execute(String command);
     }
     public interface SourceControl {
         CompletableFuture<String> status(String repositoryPath);
