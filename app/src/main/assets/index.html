@@ -26,7 +26,7 @@
   <section class="panel hidden" id="panel" aria-live="polite">
     <div class="panel-head">
       <strong id="panel-title">Command Palette</strong>
-      <button id="panel-close">×</button>
+      <button id="panel-close" aria-label="Close panel">×</button>
     </div>
     <input id="command" class="command-input" placeholder="Type a command…" autocomplete="off">
     <div class="command-list" id="command-list"></div>
@@ -36,12 +36,15 @@
   <footer class="statusbar">
     <span id="language">Plain Text</span>
     <span id="indent">Spaces: 2</span>
+    <span id="diagnostics-count">0 problems</span>
     <span>UTF-8</span>
     <span id="dirty">Saved</span>
     <span id="position">Ln 1, Col 1</span>
   </footer>
 
   <div id="toast" class="toast hidden"></div>
+  <script src="platform/diagnostics.js"></script>
+  <script src="platform/devtools.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
