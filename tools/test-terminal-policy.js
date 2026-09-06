@@ -39,14 +39,18 @@ for (const message of [
 
 assert(nativeTerminal.includes('TerminalPolicy.validate'), 'NativeTerminal must enforce TerminalPolicy');
 assert(nativeTerminal.includes('Executors.newFixedThreadPool(2)'), 'NativeTerminal must bound concurrent executions');
-assert(nativeTerminal.includes('ProcessBuilder("/system/bin/sh", "-c", requested)'), 'NativeTerminal must own the restricted process launcher');
+assert(nativeTerminal.includes('new ProcessBuilder(argv)'), 'NativeTerminal must execute validated argv without a shell');
+assert(nativeTerminal.includes('System.nanoTime()'), 'NativeTerminal must use a monotonic timeout clock');
+assert(nativeTerminal.includes('TIMEOUT_SECONDS'), 'NativeTerminal timeout budget is missing');
+assert(nativeTerminal.includes('MAX_OUTPUT_BYTES'), 'NativeTerminal output budget is missing');
+assert(!nativeTerminal.includes('/system/bin/sh'), 'NativeTerminal must not invoke a shell executable');
 
 assert(mainActivity.includes('private NativeTerminal nativeTerminal;'), 'MainActivity must hold the single NativeTerminal owner');
 assert(mainActivity.includes('nativeTerminal = new NativeTerminal(getFilesDir());'), 'MainActivity must initialize NativeTerminal');
 assert(mainActivity.includes('nativeTerminal.run(command,'), 'MainActivity must delegate terminal execution to NativeTerminal');
 assert(mainActivity.includes('nativeTerminal.shutdown();'), 'MainActivity must shut down NativeTerminal with lifecycle');
-assert(!mainActivity.includes('ProcessBuilder("/system/bin/sh", "-c", trimmed)'), 'duplicate MainActivity shell execution path must be removed');
+assert(!mainActivity.includes('ProcessBuilder('), 'MainActivity must not contain a terminal process launcher');
 assert(!mainActivity.includes('COMMAND_TIMEOUT_SECONDS'), 'duplicate MainActivity terminal timeout constant must be removed');
 assert(!mainActivity.includes('terminalWorkspace'), 'duplicate MainActivity terminal workspace state must be removed');
 
-console.log('Terminal policy validation passed: allowlist, shell/path guards, bounded concurrency, and single-owner integration are present.');
+console.log('Terminal policy validation passed: allowlist, shell/path guards, argv execution, active timeout/output budgets, bounded concurrency, and single-owner integration are present.');
