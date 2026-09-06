@@ -47,10 +47,12 @@ assert(!nativeTerminal.includes('/system/bin/sh'), 'NativeTerminal must not invo
 
 assert(mainActivity.includes('private NativeTerminal nativeTerminal;'), 'MainActivity must hold the single NativeTerminal owner');
 assert(mainActivity.includes('nativeTerminal = new NativeTerminal(getFilesDir());'), 'MainActivity must initialize NativeTerminal');
-assert(mainActivity.includes('nativeTerminal.run(command,'), 'MainActivity must delegate terminal execution to NativeTerminal');
+assert(mainActivity.includes('nativeTerminal.run(command,'), 'MainActivity must delegate terminal execution to NativeTerminal when the security gate is open');
+assert(mainActivity.includes('TERMINAL_SECURITY_GATE_PASSED = false'), 'blocked terminal must remain disabled until the security baseline is verified');
+assert(mainActivity.includes('Terminal execution is blocked until the OS/container security baseline is verified.'), 'blocked terminal must return an explicit security-gate error');
 assert(mainActivity.includes('nativeTerminal.shutdown();'), 'MainActivity must shut down NativeTerminal with lifecycle');
 assert(!mainActivity.includes('ProcessBuilder('), 'MainActivity must not contain a terminal process launcher');
 assert(!mainActivity.includes('COMMAND_TIMEOUT_SECONDS'), 'duplicate MainActivity terminal timeout constant must be removed');
 assert(!mainActivity.includes('terminalWorkspace'), 'duplicate MainActivity terminal workspace state must be removed');
 
-console.log('Terminal policy validation passed: allowlist, shell/path guards, argv execution, active timeout/output budgets, bounded concurrency, and single-owner integration are present.');
+console.log('Terminal policy validation passed: allowlist, shell/path guards, argv execution, active timeout/output budgets, bounded concurrency, single-owner integration, and blocked security gate are present.');
