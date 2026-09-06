@@ -25,13 +25,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public final class MainActivity extends Activity {
     private static final int REQUEST_OPEN = 4101;
     private static final int REQUEST_CREATE = 4102;
     private static final int REQUEST_WORKSPACE = 4103;
-    private static final int COMMAND_TIMEOUT_SECONDS = 15;
     private static final int HTTP_TIMEOUT_MILLIS = 15000;
 
     private WebView webView;
@@ -39,17 +37,14 @@ public final class MainActivity extends Activity {
     private Uri workspaceTreeUri;
     private String pendingSaveContent = "";
     private ExecutorService ioExecutor;
-    private File terminalWorkspace;
+    private NativeTerminal nativeTerminal;
     private WorkspaceBridge workspaceBridge;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         ioExecutor = Executors.newCachedThreadPool();
-        terminalWorkspace = new File(getFilesDir(), "workspace");
-        if (!terminalWorkspace.exists() && !terminalWorkspace.mkdirs()) {
-            throw new IllegalStateException("Unable to create VSAC workspace");
-        }
+        nativeTerminal = new NativeTerminal(getFilesDir());
         workspaceBridge = new WorkspaceBridge(this);
         restoreWorkspaceUri();
 
@@ -202,28 +197,10 @@ public final class MainActivity extends Activity {
     }
 
     private void runTerminal(String command) {
-        if (command == null || command.isBlank()) { notifyTerminalError("Command is empty"); return; }
-        final String trimmed = command.trim();
-        ioExecutor.execute(() -> {
-            Process process = null;
-            try {
-                process = new ProcessBuilder("/system/bin/sh", "-c", trimmed)
-                    .directory(terminalWorkspace)
-                    .redirectErrorStream(true)
-                    .start();
-                String output;
-                try (InputStream input = process.getInputStream()) { output = readLimited(input, 1024 * 1024); }
-                if (!process.waitFor(COMMAND_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                    process.destroy();
-                    if (!process.waitFor(2, TimeUnit.SECONDS)) process.destroyForcibly();
-                    notifyTerminalError("Command timed out after " + COMMAND_TIMEOUT_SECONDS + " seconds");
-                    return;
-                }
-                notifyTerminalResult(process.exitValue(), output);
-            } catch (Exception e) {
-                if (process != null) process.destroyForcibly();
-                notifyTerminalError(e.getMessage() == null ? "Terminal execution failed" : e.getMessage());
-            }
+        if (nativeTerminal == null) { notifyTerminalError("Terminal is not initialized"); return; }
+        nativeTerminal.run(command, new NativeTerminal.Callback() {
+            @Override public void onResult(int exitCode, String output) { notifyTerminalResult(exitCode, output); }
+            @Override public void onError(String message) { notifyTerminalError(message); }
         });
     }
 
@@ -363,6 +340,7 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (nativeTerminal != null) { nativeTerminal.shutdown(); nativeTerminal = null; }
         if (ioExecutor != null) { ioExecutor.shutdownNow(); ioExecutor = null; }
         if (webView != null) {
             webView.removeJavascriptInterface("VSACNative");
