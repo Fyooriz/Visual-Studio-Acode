@@ -27,8 +27,14 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Validate JavaScript
-        run: node --check app/src/main/assets/app.js
+      - name: Validate all JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            node --check "$file"
+          done < <(find app/src/main/assets -type f -name '*.js' -print0)
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
