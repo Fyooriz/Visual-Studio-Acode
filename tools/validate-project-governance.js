@@ -26,7 +26,8 @@ const canonicalJavaFeatureMap = new Map([
   ['database', 'database'],
   ['ai', 'ai'],
   ['remote', 'remote'],
-  ['projectTooling', 'project-tools']
+  ['androidTooling', 'project-tools'],
+  ['flutterTooling', 'project-tools']
 ]);
 function assert(condition, message) { if (!condition) throw new Error(message); }
 const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
