@@ -21,6 +21,7 @@ const COMMANDS = [
   ['New File', () => createUntitled()], ['Open File', () => openNative()], ['Save File', () => saveCurrent()],
   ['Find in File', () => openFind()], ['Preview HTML', () => previewHtml()], ['Terminal', () => openTerminal()],
   ['API Studio', () => openApiStudio()], ['Problems', () => openProblems()], ['DevTools', () => openDevTools()],
+  ['Languages', () => openLanguages()],
   ['AI Assistant', () => showTool('AI Assistant', 'Provider adapters and permissioned project edits are reserved for the AI Platform implementation.')],
   ['LSP Status', () => showTool('LSP', 'The language-service broker is isolated from editor globals. Language adapters can be registered independently.')]
 ];
@@ -48,6 +49,15 @@ function persist() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ac
 function runDiagnostics() { if (!window.VSACDiagnostics) return; const file = state.files.get(state.activeId); if (!file) return; const items = window.VSACDiagnostics.validate({ uri: `workspace://${file.id}`, language: file.language, content: editor.value }); diagnosticsCount.textContent = `${items.length} problem${items.length === 1 ? '' : 's'}`; }
 function openProblems() { const file = state.files.get(state.activeId); const items = window.VSACDiagnostics ? window.VSACDiagnostics.validate({ uri: `workspace://${file.id}`, language: file.language, content: editor.value }) : []; openPanel('Problems'); hideCommandArea(); previewBody.classList.remove('hidden'); previewBody.innerHTML = ''; if (!items.length) { previewBody.textContent = 'No problems detected.'; return; } for (const item of items) { const row = document.createElement('div'); row.className = 'problem-row'; row.textContent = `${item.severity.toUpperCase()} · ${item.line}:${item.column} · ${item.message}`; previewBody.appendChild(row); } }
 function openDevTools() { openPanel('DevTools'); hideCommandArea(); previewBody.classList.remove('hidden'); previewBody.innerHTML = `<div class="devtools-actions"><button id="dt-clear">Clear</button><button id="dt-refresh">Refresh</button></div><pre id="dt-output" class="devtools-output">No preview session.</pre>`; const render = () => { const snap = window.VSACDevTools ? window.VSACDevTools.snapshot() : { logs: [], errors: [], network: [] }; document.querySelector('#dt-output').textContent = JSON.stringify(snap, null, 2); }; document.querySelector('#dt-clear').onclick = () => { window.VSACDevTools?.clear(); render(); }; document.querySelector('#dt-refresh').onclick = render; render(); }
+function openLanguages() {
+  openPanel('Languages');
+  hideCommandArea();
+  previewBody.classList.remove('hidden');
+  const names = new Set(Object.values(window.VSACLanguages?.extensions || {}));
+  ['Dockerfile', 'Makefile', 'CMake', 'Starlark', 'Plain Text'].forEach((name) => names.add(name));
+  const sorted = [...names].sort((a, b) => a.localeCompare(b));
+  previewBody.innerHTML = `<strong>${sorted.length} language/file families detected</strong><div class="result-row">${sorted.map(escapeHtml).join(' · ')}</div>`;
+}
 function openNative() { if (window.VSACNative?.openTextFile) window.VSACNative.openTextFile(); else showToast('Native file picker is unavailable in this build.'); }
 function saveCurrent() { const file = state.files.get(state.activeId); if (!file) return; file.content = editor.value; if (window.VSACNative?.saveTextFile) window.VSACNative.saveTextFile(file.content, file.name); else { file.dirty = false; dirty.textContent = 'Saved locally'; renderTabs(); persist(); } }
 function openFind() { openPanel('Find'); command.value = ''; command.placeholder = 'Search in current file…'; command.oninput = () => { const q = command.value; let count = 0; if (q) { try { count = (editor.value.match(new RegExp(escapeRegExp(q), 'g')) || []).length; } catch (_) {} } commandList.innerHTML = `<div class="result-row">${count} match${count === 1 ? '' : 'es'}</div>`; }; commandList.innerHTML = '<div class="result-row">Type to search this file.</div>'; previewBody.classList.add('hidden'); command.focus(); }
