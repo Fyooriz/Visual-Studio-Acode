@@ -7,6 +7,8 @@ const architecturePath = path.join(root, 'docs', 'ARCHITECTURE.md');
 const pluginAuditPath = path.join(root, 'docs', 'PLUGIN_AUDIT.md');
 const securityPath = path.join(root, 'docs', 'SECURITY_AND_LICENSES.md');
 const sourceAuditPath = path.join(root, 'docs', 'SOURCE-AUDIT-2026-09-06.md');
+const sourceManifestPath = path.join(root, 'docs', 'SOURCE-MANIFEST-2026-09-06.json');
+const aiSkillPolicyPath = path.join(root, 'docs', 'AI_SKILL_RUNTIME_POLICY.md');
 const allowedStatuses = new Set(['PLANNED','IMPLEMENTING','IMPLEMENTED','INTEGRATED','TESTED','VERIFIED','BLOCKED','DEPRECATED']);
 function assert(condition, message) { if (!condition) throw new Error(message); }
 const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
@@ -34,7 +36,7 @@ for (const [id, feature] of Object.entries(registry.features)) {
   if (feature.status === 'BLOCKED') assert(typeof feature.blocker === 'string' && feature.blocker.length > 0, `${id}: BLOCKED requires a concrete blocker`);
   if (feature.status === 'VERIFIED') for (const key of ['build','test','runtime','security']) assert(feature.evidence[key] === 'pass', `${id}: VERIFIED requires evidence.${key}=pass`);
 }
-for (const doc of [architecturePath, pluginAuditPath, securityPath, sourceAuditPath]) assert(fs.existsSync(doc), `required governance document missing: ${path.relative(root, doc)}`);
+for (const doc of [architecturePath, pluginAuditPath, securityPath, sourceAuditPath, sourceManifestPath, aiSkillPolicyPath]) assert(fs.existsSync(doc), `required governance document missing: ${path.relative(root, doc)}`);
 const architecture = fs.readFileSync(architecturePath, 'utf8');
 assert(architecture.includes('one owner'), 'architecture must document one-owner subsystem rule');
 assert(architecture.includes('EditorAdapter'), 'architecture must list internal integration contracts');
@@ -42,4 +44,9 @@ const security = fs.readFileSync(securityPath, 'utf8');
 for (const term of ['Unknown license','AI','Terminal']) assert(security.includes(term), `security/license gate missing ${term} coverage`);
 const sourceAudit = fs.readFileSync(sourceAuditPath, 'utf8');
 for (const term of ['Acode-main','termux-app-master','vscode-main','Skill/agent collections']) assert(sourceAudit.includes(term), `source audit missing ${term} coverage`);
+const sourceManifest = JSON.parse(fs.readFileSync(sourceManifestPath, 'utf8'));
+assert(sourceManifest.schemaVersion === 1, 'source manifest schemaVersion must be 1');
+for (const container of ['Data apk.zip','Informasi.zip','Skill.zip']) assert(sourceManifest.containers && sourceManifest.containers[container], `source manifest missing ${container}`);
+const aiSkillPolicy = fs.readFileSync(aiSkillPolicyPath, 'utf8');
+for (const term of ['AIPlatform','declarative','permission','audit event','licens']) assert(aiSkillPolicy.includes(term), `AI skill runtime policy missing ${term} coverage`);
 console.log(`Governance validation passed: ${Object.keys(registry.features).length} feature records checked.`);
