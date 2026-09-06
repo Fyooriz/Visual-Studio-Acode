@@ -64,7 +64,8 @@ final class NativeTerminal {
         }
     }
 
-    private String collectOutputUntilExit(Process process) throws IOException, InterruptedException {
+    private String collectOutputUntilExit(Process process)
+            throws IOException, InterruptedException, TerminalTimeoutException {
         InputStream input = process.getInputStream();
         ByteArrayOutputStream output = new ByteArrayOutputStream(Math.min(MAX_OUTPUT_BYTES, 8192));
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
