@@ -17,7 +17,7 @@ final class NativeTerminal {
     private static final long TIMEOUT_SECONDS = 15;
     private static final int MAX_OUTPUT_CHARS = 1024 * 1024;
 
-    private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final ExecutorService executor = Executors.newFixedThreadPool(2);
     private final java.io.File workspace;
 
     NativeTerminal(java.io.File filesDir) {
@@ -29,8 +29,9 @@ final class NativeTerminal {
 
     void run(String command, Callback callback) {
         final String requested = command == null ? "" : command.trim();
-        if (requested.isEmpty()) {
-            callback.onResult(0, "");
+        TerminalPolicy.Result policy = TerminalPolicy.validate(requested);
+        if (!policy.allowed) {
+            callback.onError(policy.message);
             return;
         }
         executor.execute(() -> {
