@@ -1,44 +1,57 @@
 # Visual Studio Acode Feature Registry
 
-This registry converts the uploaded plugin set into product-level capabilities. It is intentionally smaller than the source plugin count.
+This document is the human-readable companion to `app/src/main/assets/feature-registry.json`. The JSON registry is the machine-validated source of truth for feature status and evidence.
 
-| Capability | Source evidence | Integration mode | Status |
-|---|---|---|---|
-| Mobile editor | Acode settings/runtime snapshot | Rebuild in app shell | active |
-| Tabs + workspace state | Acode settings | Native app state + WebView UI | active |
-| Command palette | Acode workflow | Rebuild | active |
-| Open/save documents | Acode workflow + Android SAF | Native bridge | active |
-| Syntax/language modes | Acode language client plugins | Language adapters | planned |
-| LSP | language-client plugins + `jobians.lsp.client` | One LSP broker | planned |
-| Tree-sitter | `x.treesitter` | Editor adapter | review |
-| Lint/diagnostics | `ace-linters-2.3.4.zip` | Unified diagnostics engine | review |
-| Formatting | Prettier/Python/PHP formatter plugins | Formatter broker | planned |
-| Code execution | multiple runner plugins | One execution engine | planned |
-| Terminal | `bajrangcoder.acodex`, `acode.terminal` settings | Native/backend adapter | planned |
-| HTML preview | multiple preview plugins | One sandboxed preview engine | active (HTML srcdoc) |
-| Web DevTools | `suger-devtool-main.zip` | Capability adapter/reimplementation | review |
-| Git | Git-related plugins | One Source Control engine | planned |
-| GitHub | GitHub plugins | GitHub adapter | planned |
-| SQLite / SQL | SQLite viewer + DB visualizer plugins | One Database Studio | planned |
-| AI | ChatGPT/Acopilot/Blackbox/agent plugins | One AI provider platform | planned |
-| SSH/SFTP | screenshot feature references | Remote adapter | planned |
-| Markdown | Markdown plugin | Built-in renderer | planned |
-| JSON visualizer | JSON visualizer plugin | Built-in viewer | planned |
-| React snippets | React snippet plugins | Unified snippet provider | planned |
-| Path intelligence | path/linker plugins | Built-in completion provider | planned |
-| Code metrics | `code.metrics` | Optional productivity module | planned |
-| WakaTime | `x.wakatime` | Opt-in integration only | planned |
+## Status policy
+
+A feature may use only: `PLANNED`, `IMPLEMENTING`, `IMPLEMENTED`, `INTEGRATED`, `TESTED`, `VERIFIED`, `BLOCKED`, `DEPRECATED`.
+
+`DONE` is not a lifecycle state. A feature is only considered done when it is designed, implemented, integrated, buildable, tested, verified, and documented.
+
+## Current registry
+
+| Capability | Owner | Source evidence | Status | Current evidence / blocker |
+|---|---|---|---|---|
+| Mobile editor | `EditorPlatform` | Acode ecosystem, `x.treesitter`, `jobians.lsp.client` | `IMPLEMENTED` | Build/runtime evidence still incomplete; tests partial. |
+| Workspace | `WorkspaceCore` | Acode ecosystem | `IMPLEMENTED` | Build/runtime evidence still incomplete; tests partial. |
+| LSP | `LanguagePlatform` | `ace-linters-2.3.4.zip`, `jobians.lsp.client` | `IMPLEMENTED` | Runtime/test evidence still incomplete. |
+| Diagnostics | `LanguagePlatform` | `ace-linters-2.3.4.zip` | `IMPLEMENTED` | Runtime/test evidence still incomplete. |
+| Formatting | `BuildExecutionPlatform` | Prettier/Python formatter sources | `IMPLEMENTED` | Built-in formatter coverage exists; broader formatter verification remains incomplete. |
+| Terminal | `BuildExecutionPlatform` | `bajrangcoder.acodex`, code runner family | `BLOCKED` | CI build passes, static security gates pass, but strong OS/container isolation and explicit CPU/memory quota enforcement are still missing. |
+| Execution | `BuildExecutionPlatform` | code runner family | `IMPLEMENTED` | Runtime/security verification remains incomplete. |
+| HTML preview | `WebPlatform` | preview plugin family | `IMPLEMENTED` | Runtime/security verification remains incomplete. |
+| API Studio | `WebPlatform` | API client/REST plugin family | `IMPLEMENTED` | Runtime/test verification remains incomplete. |
+| Web DevTools | `DeveloperTools` | `suger-devtool-main.zip`, Eruda source | `IMPLEMENTED` | Capability adapter exists; runtime/security verification remains incomplete. Suger activation/fingerprinting/cloud components remain excluded. |
+| Git | `SourceControl` | Git-related plugin family | `IMPLEMENTED` | Native Git engine verification remains incomplete. |
+| Database Studio | `DatabaseStudio` | SQLite viewer/visualizer sources | `IMPLEMENTED` | SQLite-first implementation verification remains incomplete. |
+| AI platform | `AIPlatform` | AI agent/copilot/provider sources | `IMPLEMENTED` | Permissioned mutation/audit implementation requires further verification. |
+| Remote workspace | `RemotePlatform` | Acode screenshot references | `PLANNED` | SSH/SFTP provider abstraction not yet implemented. |
+| Android tooling | `ProjectTooling` | Acode screenshot references | `PLANNED` | Android project tooling not yet implemented. |
+| Flutter tooling | `ProjectTooling` | Acode screenshot references | `PLANNED` | Flutter/Dart tooling not yet implemented. |
 
 ## Source selection rules
 
-`KEEP` means the capability is useful and should exist in the product. It does **not** mean source code can be copied without license review.
+`KEEP` means the capability belongs in the product scope; it does not authorize copying source without license review.
 
-`MERGE` means several source plugins are represented by one product subsystem. Only one subsystem owns the user-facing behavior.
+`MERGE` means multiple sources contribute capability to one product subsystem, preserving a single owner.
 
-`REVIEW` means the capability is valuable but its implementation/dependencies/license/security posture still require inspection.
+`REVIEW` is a source-audit decision, not a product lifecycle status. Source code remains excluded from the distributable until license, dependency, overlap, and security review are satisfied.
 
-`REJECT` means it is not part of the default product scope; it may still inspire a native implementation when a concrete requirement exists.
+`REJECT` excludes a source or capability from the default product scope; useful technical ideas may still be reimplemented natively when justified.
+
+## Uploaded source material
+
+The project registry explicitly retains these user-provided sources as evidence/source material:
+
+- `Acode.zip`
+- `Acode screenshot.zip`
+- `ace-linters-2.3.4.zip`
+- `suger-devtool-main.zip`
+
+Useful functionality is adapted behind the owning subsystem. Conflicting or overlapping implementations are inspected and merged/wrapped/replaced rather than blindly bundled as independent plugin runtimes.
 
 ## Current implementation boundary
 
-The current Android/WebView foundation intentionally implements document state, tabs, local draft recovery, command palette, HTML preview, and Storage Access Framework document I/O. LSP, terminal execution, Git, database access, AI network providers, and advanced DevTools remain explicit adapter points until their native security and dependency contracts are implemented.
+The Android/WebView foundation currently covers the mobile shell/editor workspace, tabs/document state, recovery/draft state, command palette, Storage Access Framework document I/O, isolated HTML preview, native HTTPS API access, diagnostics UI, formatter foundation, and the audited terminal boundary.
+
+The terminal remains deliberately `BLOCKED` until its security baseline is satisfied. The CI system has now produced a debug APK for the terminal-hardening commit, but that is build evidence, not runtime/security verification.
