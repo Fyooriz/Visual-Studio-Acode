@@ -1,0 +1,118 @@
+# Visual Studio Acode Architecture
+
+## Design goal
+
+Keep the Acode-like mobile editing experience while replacing the plugin pile with a small set of internal platforms. A feature may be implemented from an audited plugin, rewritten, or adapted; the user-facing API stays stable.
+
+## Platform map
+
+```text
+Visual Studio Acode
+├── App Shell
+│   ├── Navigation / panels
+│   ├── Tabs / split editor
+│   ├── Command palette
+│   └── Settings
+├── Workspace Core
+│   ├── File system abstraction
+│   ├── Project/workspace state
+│   ├── Search / replace
+│   └── Recent files / recovery
+├── Editor Platform
+│   ├── Ace-compatible editor adapter
+│   ├── syntax/highlighting
+│   ├── snippets / completion
+│   ├── breadcrumbs
+│   └── gestures / mobile input
+├── Language Platform
+│   ├── LSP broker
+│   ├── language adapters
+│   ├── diagnostics
+│   └── semantic features
+├── Build & Execution
+│   ├── formatter broker
+│   ├── linter broker
+│   ├── task runner
+│   └── terminal backend
+├── Web Platform
+│   ├── local server
+│   ├── preview
+│   └── web runtime bridge
+├── Developer Tools
+│   ├── console
+│   ├── debugger
+│   ├── Elements/DOM
+│   ├── styles
+│   ├── network
+│   ├── storage
+│   └── device emulation
+├── Source Control
+│   ├── Git engine
+│   ├── diff / history
+│   └── GitHub adapter
+├── Database Studio
+│   ├── SQLite
+│   ├── SQL editor
+│   └── visualizer
+├── AI Platform
+│   ├── provider adapters
+│   ├── chat / edit / explain
+│   ├── agent loop
+│   └── workspace permission gate
+├── Remote
+│   ├── SSH
+│   ├── SFTP
+│   └── remote workspace adapter
+└── Project Tooling
+    ├── Android
+    ├── Kotlin/Java/XML
+    ├── Flutter/Dart
+    └── templates/packages
+```
+
+## Integration contracts
+
+Each platform must expose an internal interface and own its state. Plugins/features do not patch arbitrary global editor state.
+
+```text
+EditorAdapter
+WorkspaceFileSystem
+LanguageService
+DiagnosticProvider
+Formatter
+Linter
+TaskExecutor
+TerminalBackend
+PreviewServer
+Debugger
+SourceControl
+DatabaseProvider
+AIProvider
+RemoteFileSystem
+```
+
+The first implementation may be simple. The contract is what prevents future feature additions from recreating the observed Acode runtime conflicts.
+
+## Selected source material
+
+### `ace-linters-2.3.4.zip`
+
+Candidate for the lint/diagnostic foundation because it is already organized as a workspace with Ace integration. Reuse is conditional on license and dependency review.
+
+### `suger-devtool-main.zip`
+
+Candidate for the Developer Tools feature set: JavaScript debugging, DOM inspection, CSS/computed styles, network tooling, storage/application inspection, and mobile-oriented tooling.
+
+The source snapshot also contains activation/fingerprinting/cloud dependencies. Those parts are **not** part of the target architecture; only independently justified technical functionality may be adapted.
+
+## Conflict policy
+
+Known conflict examples from the uploaded runtime log include duplicate plugin globals, duplicate editor extension compartments, DOM removal errors, missing paths and repeated fetch failures. The solution is architectural isolation plus one owner per capability, not another layer of plugin ordering.
+
+## Security boundaries
+
+- Terminal commands execute only through an explicit execution boundary.
+- AI file modifications are permissioned and diff-first by default.
+- Remote filesystem access is isolated from local workspace state.
+- Secrets/tokens are stored outside source files and never injected into project exports.
+- Web preview content is treated as untrusted input.
