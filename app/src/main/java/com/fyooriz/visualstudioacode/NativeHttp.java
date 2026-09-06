@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 
 final class NativeHttp {
+    private static final int MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
+
     private NativeHttp() {}
 
     static Result request(String method, String url, String headers, String body) throws Exception {
@@ -18,8 +20,8 @@ final class NativeHttp {
         }
         HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
         connection.setRequestMethod(method == null || method.isBlank() ? "GET" : method.toUpperCase());
-        connection.setConnectTimeout(15000);
-        connection.setReadTimeout(30000);
+        connection.setConnectTimeout(10000);
+        connection.setReadTimeout(15000);
         connection.setInstanceFollowRedirects(false);
         connection.setUseCaches(false);
 
@@ -38,7 +40,10 @@ final class NativeHttp {
         if (!safeBody.isEmpty() && !"GET".equalsIgnoreCase(connection.getRequestMethod()) && !"HEAD".equalsIgnoreCase(connection.getRequestMethod())) {
             connection.setDoOutput(true);
             byte[] bytes = safeBody.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-            connection.getOutputStream().write(bytes);
+            if (bytes.length > MAX_RESPONSE_BYTES) throw new IllegalArgumentException("Request body is too large");
+            try (java.io.OutputStream out = connection.getOutputStream()) {
+                out.write(bytes);
+            }
         }
 
         int code = connection.getResponseCode();
@@ -47,9 +52,7 @@ final class NativeHttp {
         StringBuilder responseHeaders = new StringBuilder();
         for (Map.Entry<String, List<String>> entry : connection.getHeaderFields().entrySet()) {
             if (entry.getKey() == null || entry.getValue() == null) continue;
-            for (String value : entry.getValue()) {
-                responseHeaders.append(entry.getKey()).append(": ").append(value).append('\n');
-            }
+            for (String value : entry.getValue()) responseHeaders.append(entry.getKey()).append(": ").append(value).append('\n');
         }
         String redirect = connection.getHeaderField("Location");
         connection.disconnect();
@@ -59,9 +62,16 @@ final class NativeHttp {
     private static String readUtf8(InputStream stream) throws Exception {
         try (InputStream in = stream; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[8192];
+            int total = 0;
             int read;
-            while ((read = in.read(buffer)) != -1) out.write(buffer, 0, read);
-            return out.toString("UTF-8");
+            while ((read = in.read(buffer)) != -1) {
+                int allowed = Math.min(read, MAX_RESPONSE_BYTES - total);
+                if (allowed <= 0) break;
+                out.write(buffer, 0, allowed);
+                total += allowed;
+            }
+            String value = out.toString("UTF-8");
+            return total >= MAX_RESPONSE_BYTES ? value + "\n[response truncated]" : value;
         }
     }
 
