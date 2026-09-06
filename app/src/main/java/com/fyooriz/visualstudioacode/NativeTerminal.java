@@ -1,16 +1,19 @@
 package com.fyooriz.visualstudioacode;
 
+import com.fyooriz.visualstudioacode.platform.EngineContracts;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-final class NativeTerminal {
+final class NativeTerminal implements EngineContracts.TerminalBackend {
     interface Callback {
         void onResult(int exitCode, String output);
         void onError(String message);
@@ -30,18 +33,34 @@ final class NativeTerminal {
         }
     }
 
-    void run(String command, Callback callback) {
+    @Override
+    public CompletableFuture<EngineContracts.TerminalResult> execute(String command) {
+        CompletableFuture<EngineContracts.TerminalResult> future = new CompletableFuture<>();
         final String requested = command == null ? "" : command.trim();
         TerminalPolicy.Result policy = TerminalPolicy.validate(requested);
         if (!policy.allowed) {
-            callback.onError(policy.message);
-            return;
+            future.completeExceptionally(new IllegalArgumentException(policy.message));
+            return future;
         }
         final String[] argv = requested.split("\\s+");
-        executor.execute(() -> execute(argv, callback));
+        executor.execute(() -> execute(argv, future));
+        return future;
     }
 
-    private void execute(String[] argv, Callback callback) {
+    void run(String command, Callback callback) {
+        execute(command).whenComplete((result, error) -> {
+            if (error != null) {
+                String message = error.getCause() != null && error.getCause().getMessage() != null
+                        ? error.getCause().getMessage()
+                        : (error.getMessage() == null ? "Terminal execution failed" : error.getMessage());
+                callback.onError(message);
+                return;
+            }
+            callback.onResult(result.exitCode(), result.output());
+        });
+    }
+
+    private void execute(String[] argv, CompletableFuture<EngineContracts.TerminalResult> future) {
         Process process = null;
         try {
             ProcessBuilder builder = new ProcessBuilder(argv);
@@ -54,11 +73,11 @@ final class NativeTerminal {
             process = builder.start();
 
             String output = collectOutputUntilExit(process);
-            callback.onResult(process.exitValue(), output);
+            future.complete(new EngineContracts.TerminalResult(process.exitValue(), output));
         } catch (TerminalTimeoutException e) {
-            callback.onError(e.getMessage());
+            future.completeExceptionally(e);
         } catch (Exception e) {
-            callback.onError(e.getMessage() == null ? "Terminal execution failed" : e.getMessage());
+            future.completeExceptionally(e);
         } finally {
             if (process != null) process.destroyForcibly();
         }
