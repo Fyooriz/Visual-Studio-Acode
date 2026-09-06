@@ -4,9 +4,11 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 const javaRoot = path.join(root, 'app', 'src', 'main', 'java', 'com', 'fyooriz', 'visualstudioacode');
+const platformRoot = path.join(javaRoot, 'platform');
 const policyPath = path.join(javaRoot, 'TerminalPolicy.java');
 const nativeTerminalPath = path.join(javaRoot, 'NativeTerminal.java');
 const mainActivityPath = path.join(javaRoot, 'MainActivity.java');
+const contractsPath = path.join(platformRoot, 'EngineContracts.java');
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -20,6 +22,7 @@ function read(file) {
 const policy = read(policyPath);
 const nativeTerminal = read(nativeTerminalPath);
 const mainActivity = read(mainActivityPath);
+const contracts = read(contractsPath);
 
 for (const command of ['pwd', 'ls', 'cat', 'head', 'tail', 'echo', 'mkdir', 'touch']) {
   assert(new RegExp(`\\"${command}\\"`).test(policy), `restricted terminal must define allowlisted command: ${command}`);
@@ -37,6 +40,11 @@ for (const message of [
   assert(policy.includes(message), `path security guard missing: ${message}`);
 }
 
+assert(contracts.includes('record TerminalResult(int exitCode, String output)'), 'TerminalBackend result contract is missing');
+assert(contracts.includes('interface TerminalBackend'), 'TerminalBackend interface is missing');
+assert(contracts.includes('CompletableFuture<TerminalResult> execute(String command)'), 'TerminalBackend must expose one-shot execution contract');
+assert(nativeTerminal.includes('implements EngineContracts.TerminalBackend'), 'NativeTerminal must be the concrete TerminalBackend owner');
+assert(nativeTerminal.includes('public CompletableFuture<EngineContracts.TerminalResult> execute(String command)'), 'NativeTerminal must implement TerminalBackend.execute');
 assert(nativeTerminal.includes('TerminalPolicy.validate'), 'NativeTerminal must enforce TerminalPolicy');
 assert(nativeTerminal.includes('Executors.newFixedThreadPool(2)'), 'NativeTerminal must bound concurrent executions');
 assert(nativeTerminal.includes('new ProcessBuilder(argv)'), 'NativeTerminal must execute validated argv without a shell');
@@ -55,4 +63,4 @@ assert(!mainActivity.includes('ProcessBuilder('), 'MainActivity must not contain
 assert(!mainActivity.includes('COMMAND_TIMEOUT_SECONDS'), 'duplicate MainActivity terminal timeout constant must be removed');
 assert(!mainActivity.includes('terminalWorkspace'), 'duplicate MainActivity terminal workspace state must be removed');
 
-console.log('Terminal policy validation passed: allowlist, shell/path guards, argv execution, active timeout/output budgets, bounded concurrency, single-owner integration, and blocked security gate are present.');
+console.log('Terminal policy validation passed: allowlist, shell/path guards, argv execution, active timeout/output budgets, bounded concurrency, single-owner TerminalBackend integration, and blocked security gate are present.');
