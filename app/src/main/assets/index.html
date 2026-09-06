@@ -11,6 +11,7 @@
   <header class="topbar">
     <button class="icon" id="menu" aria-label="Open menu">☰</button>
     <div class="brand"><strong>Visual Studio Acode</strong><span id="workspace">No workspace</span></div>
+    <button class="icon" id="project" aria-label="Project explorer">▦</button>
     <button class="icon" id="save" aria-label="Save">⌑</button>
     <button class="icon" id="run" aria-label="Preview">▶</button>
     <button class="icon" id="more" aria-label="More">⋮</button>
@@ -20,7 +21,7 @@
 
   <main class="editor-wrap">
     <div class="gutter" id="gutter" aria-hidden="true"></div>
-    <textarea id="editor" class="editor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Code editor" aria-multiline="true"></textarea>
+    <textarea id="editor" class="editor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="Code editor" aria-multiline="true"></textarea>
   </main>
 
   <section class="panel hidden" id="panel" aria-live="polite">
@@ -48,5 +49,6 @@
   <script src="platform/diagnostics.js"></script>
   <script src="platform/devtools.js"></script>
   <script src="app.js"></script>
+  <script src="platform/project-workspace.js"></script>
 </body>
 </html>
