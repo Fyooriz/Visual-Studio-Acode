@@ -5,7 +5,14 @@
     "uploadedArchives": ["Acode.zip", "Acode screenshot.zip", "ace-linters-2.3.4.zip", "suger-devtool-main.zip"],
     "governanceDocuments": ["Prompt.md", "text.txt"],
     "sourceContainers": ["Data apk.zip", "Informasi.zip", "Skill.zip"],
-    "sourcePackages": ["Acode-main.zip", "termux-app-master.zip", "vscode-main.zip", "AI-Skills-main.zip", "Claude-AI-skills-collection-2026-main.zip", "SkillNet-main.zip", "agent-skills-library-main.zip", "awesome-agent-skills-main (1).zip", "awesome-agent-skills-main.zip", "awesome-claude-code-and-skills-main.zip", "awesome-claude-code-main.zip", "awesome-claude-skills-main (1).zip", "awesome-claude-skills-main.zip", "awesome-claude-skills-master.zip", "claude-code-marketplace-main.zip", "claude-code-skills-master.zip", "claude-skills-main.zip", "echoskill-main.zip"],
+    "sourcePackages": [
+      "Acode-main.zip", "termux-app-master.zip", "vscode-main.zip", "Acode screenshot.zip", "Acode.zip",
+      "AI-Skills-main.zip", "Claude-AI-skills-collection-2026-main.zip", "SkillNet-main.zip", "agent-skills-library-main.zip",
+      "awesome-agent-skills-main (1).zip", "awesome-agent-skills-main.zip", "awesome-claude-code-and-skills-main.zip",
+      "awesome-claude-code-main.zip", "awesome-claude-skills-main (1).zip", "awesome-claude-skills-main.zip",
+      "awesome-claude-skills-master.zip", "claude-code-marketplace-main.zip", "claude-code-skills-master.zip",
+      "claude-skills-main.zip", "echoskill-main.zip"
+    ],
     "externalEvidenceHashes": {
       "Acode.zip": "sha256:186f0f1038c26f7396ecaf51a637299a8144ccdb0839d522a9b916e9c049c7bd",
       "Acode screenshot.zip": "sha256:45bc2201a4175d42de988b9d585f64e50699fb852df83fea476c8963ba9031b4",
