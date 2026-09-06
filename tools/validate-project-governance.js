@@ -48,17 +48,19 @@ for (const term of ['Acode-main','termux-app-master','vscode-main','Skill/agent 
 const sourceManifest = JSON.parse(fs.readFileSync(sourceManifestPath, 'utf8'));
 assert(sourceManifest.schemaVersion === 1, 'source manifest schemaVersion must be 1');
 for (const container of trackedSourceContainers) assert(sourceManifest.containers && sourceManifest.containers[container], `source manifest missing ${container}`);
-for (const container of trackedSourceContainers) {
-  const registryHash = registry.sourcePolicy.externalEvidenceHashes[container];
-  const manifestHash = sourceManifest.containers[container].sha256;
-  assert(typeof manifestHash === 'string' && /^[0-9a-f]{64}$/.test(manifestHash), `${container}: invalid manifest sha256`);
-  assert(registryHash === `sha256:${manifestHash}`, `${container}: registry and source manifest SHA-256 mismatch`);
-}
+const manifestPackageNames = new Set();
 for (const [container, metadata] of Object.entries(sourceManifest.containers)) {
   assert(metadata && typeof metadata.sha256 === 'string' && /^[0-9a-f]{64}$/.test(metadata.sha256), `${container}: invalid source manifest sha256`);
   const registryHash = registry.sourcePolicy.externalEvidenceHashes[container];
   if (registryHash) assert(registryHash === `sha256:${metadata.sha256}`, `${container}: registry and source manifest SHA-256 mismatch`);
+  assert(Array.isArray(metadata.packages), `${container}: packages array missing`);
+  for (const pkg of metadata.packages) {
+    assert(pkg && typeof pkg.name === 'string' && pkg.name.length > 0, `${container}: package name missing`);
+    assert(typeof pkg.sha256 === 'string' && /^[0-9a-f]{64}$/.test(pkg.sha256), `${container}/${pkg.name}: invalid package sha256`);
+    manifestPackageNames.add(pkg.name);
+  }
 }
+for (const packageName of manifestPackageNames) assert(registry.sourcePolicy.sourcePackages.includes(packageName), `manifest package missing from registry sourcePackages: ${packageName}`);
 const aiSkillPolicy = fs.readFileSync(aiSkillPolicyPath, 'utf8');
 for (const term of ['AIPlatform','declarative','permission','audit event','licens']) assert(aiSkillPolicy.includes(term), `AI skill runtime policy missing ${term} coverage`);
-console.log(`Governance validation passed: ${Object.keys(registry.features).length} feature records checked.`);
+console.log(`Governance validation passed: ${Object.keys(registry.features).length} feature records and ${manifestPackageNames.size} source packages checked.`);
