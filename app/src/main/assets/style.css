@@ -20,6 +20,7 @@ button { -webkit-tap-highlight-color: transparent; }
 #editor { min-width: 0; min-height: 0; width: 100%; height: 100%; resize: none; border: 0; outline: 0; padding: 14px 12px 28px; background: #0d1117; color: #e6edf3; font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; tab-size: 2; white-space: pre; overflow: auto; caret-color: #58a6ff; }
 #editor::selection { background: #264f78; }
 .statusbar { display: flex; align-items: center; gap: 14px; padding: 0 10px; background: #161b22; color: #8b949e; border-top: 1px solid #30363d; font-size: 10px; white-space: nowrap; overflow: hidden; }
+#diagnostics-count { cursor: pointer; }
 #dirty { margin-left: auto; }
 .panel { position: fixed; top: 58px; left: 8px; right: 8px; max-height: min(78vh, 620px); display: flex; flex-direction: column; background: #161b22; border: 1px solid #30363d; border-radius: 12px; box-shadow: 0 16px 40px rgba(0,0,0,.5); z-index: 20; overflow: hidden; }
 .panel.hidden { display: none; }
@@ -29,9 +30,10 @@ button { -webkit-tap-highlight-color: transparent; }
 .command-input { margin: 10px; padding: 10px 11px; border: 1px solid #30363d; border-radius: 8px; background: #0d1117; color: #f0f6fc; outline: 0; }
 .command-input:focus { border-color: #58a6ff; }
 .command-list { display: grid; gap: 3px; padding: 0 10px 10px; overflow: auto; }
-.command-list button, #api-send { border: 0; border-radius: 8px; padding: 10px; background: #21262d; color: #c9d1d9; text-align: left; }
-.command-list button:active, #api-send:active { background: #30363d; }
+.command-list button, #api-send, .devtools-actions button { border: 0; border-radius: 8px; padding: 10px; background: #21262d; color: #c9d1d9; text-align: left; }
+.command-list button:active, #api-send:active, .devtools-actions button:active { background: #30363d; }
 .result-row, .terminal-note { padding: 10px; color: #8b949e; font-size: 12px; }
+.problem-row { padding: 9px 10px; border: 1px solid #30363d; border-radius: 8px; color: #ffdfb6; background: #1b1f26; font: 12px/1.45 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .panel-body { min-height: 180px; padding: 10px; color: #8b949e; font-size: 12px; overflow: auto; white-space: pre-wrap; }
 .panel-body.hidden { display: none; }
 .preview-frame { display: block; width: 100%; min-height: 300px; border: 1px solid #30363d; border-radius: 8px; background: #fff; }
@@ -44,9 +46,9 @@ button { -webkit-tap-highlight-color: transparent; }
 .api-row select, .api-row input, .api-form textarea { width: 100%; border: 1px solid #30363d; border-radius: 8px; background: #0d1117; color: #f0f6fc; padding: 9px; outline: 0; }
 .api-form textarea { min-height: 90px; resize: vertical; font: 12px/1.45 ui-monospace, monospace; }
 .api-result { min-height: 160px; margin: 0; padding: 10px; border: 1px solid #30363d; border-radius: 8px; background: #0d1117; color: #c9d1d9; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.devtools-actions { display: flex; gap: 6px; margin-bottom: 8px; }
+.devtools-actions button { text-align: center; flex: 1; }
+.devtools-output { min-height: 220px; margin: 0; padding: 10px; border: 1px solid #30363d; border-radius: 8px; background: #0d1117; color: #c9d1d9; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 11px/1.45 ui-monospace, monospace; }
 .toast { position: fixed; left: 50%; bottom: 42px; transform: translateX(-50%); max-width: calc(100vw - 32px); padding: 9px 12px; border: 1px solid #30363d; border-radius: 9px; background: #161b22; color: #f0f6fc; font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.35); z-index: 30; }
 .toast.hidden { display: none; }
-@media (min-width: 900px) {
-  .panel { left: 50%; right: auto; width: 620px; transform: translateX(-50%); }
-  #editor { font-size: 14px; }
-}
+@media (min-width: 900px) { .panel { left: 50%; right: auto; width: 620px; transform: translateX(-50%); } #editor { font-size: 14px; } }
