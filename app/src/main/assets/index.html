@@ -20,7 +20,7 @@
 
   <main class="editor-wrap">
     <div class="gutter" id="gutter" aria-hidden="true"></div>
-    <div id="editor" class="editor" role="textbox" aria-label="Code editor" aria-multiline="true"></div>
+    <textarea id="editor" class="editor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Code editor" aria-multiline="true"></textarea>
   </main>
 
   <section class="panel hidden" id="panel" aria-live="polite">
@@ -43,9 +43,9 @@
   </footer>
 
   <div id="toast" class="toast hidden"></div>
+  <script src="platform/editor-engine.js"></script>
   <script src="platform/diagnostics.js"></script>
   <script src="platform/devtools.js"></script>
-  <script src="platform/diagnostics-ui.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
