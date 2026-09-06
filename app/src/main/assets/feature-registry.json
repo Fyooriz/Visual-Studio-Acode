@@ -13,7 +13,7 @@
       "text.txt": "sha256:5a7a8024bb4f931d99ca414a9b39acc656ace64a25c415dda371654f0b00e9e8",
       "Data apk.zip": "sha256:65396481fcc0700f67041fab2eee362301cb56c1322fbbdffaec8cb77c6d8ca8",
       "Informasi.zip": "sha256:746d36436006c6fe80ff984d32f12c3757c156bd216c234a4f1c5ca4242cceb1",
-      "Skill.zip": "sha256:f01eba20ad72b27325140648866a8025723f4041371b4e751b85bc0b1c6931f"
+      "Skill.zip": "sha256:f01eba20ad72b27325140648866a8025723f4041371b4e751b85e26fd4af449f"
     },
     "rule": "Treat uploaded material as evidence/source material. Adapt useful capability behind a single internal owner; do not load overlapping plugins as independent runtimes. Unknown-license source is never copied into the distributable build until licensing is resolved. Prompt.md and text.txt are governance inputs; the repository remains the implementation source of truth. New Acode/Termux/VS Code and skill archives are audit evidence only until explicit source-level review passes."
   },
