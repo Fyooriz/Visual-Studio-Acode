@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <title>Visual Studio Acode</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <button class="icon" id="menu" aria-label="Open menu">☰</button>
+    <div class="brand"><strong>Visual Studio Acode</strong><span id="workspace">No workspace</span></div>
+    <button class="icon" id="save" aria-label="Save">⌑</button>
+    <button class="icon" id="run" aria-label="Preview">▶</button>
+    <button class="icon" id="more" aria-label="More">⋮</button>
+  </header>
+
+  <nav class="tabs" id="tabs" aria-label="Open files"></nav>
+
+  <main class="editor-wrap">
+    <div class="gutter" id="gutter" aria-hidden="true"></div>
+    <textarea id="editor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Code editor"></textarea>
+  </main>
+
+  <section class="panel hidden" id="panel" aria-live="polite">
+    <div class="panel-head">
+      <strong id="panel-title">Command Palette</strong>
+      <button id="panel-close">×</button>
+    </div>
+    <input id="command" class="command-input" placeholder="Type a command…" autocomplete="off">
+    <div class="command-list" id="command-list"></div>
+    <div class="panel-body hidden" id="preview-body"></div>
+  </section>
+
+  <footer class="statusbar">
+    <span id="language">Plain Text</span>
+    <span id="indent">Spaces: 2</span>
+    <span>UTF-8</span>
+    <span id="dirty">Saved</span>
+    <span id="position">Ln 1, Col 1</span>
+  </footer>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="app.js"></script>
+</body>
+</html>
