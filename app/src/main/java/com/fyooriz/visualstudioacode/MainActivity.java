@@ -13,10 +13,12 @@ import android.webkit.WebViewClient;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Executors;
 
 public final class MainActivity extends Activity {
     private static final int REQUEST_OPEN = 4101;
@@ -24,6 +26,8 @@ public final class MainActivity extends Activity {
 
     private WebView webView;
     private Uri currentDocumentUri;
+    private String pendingSaveContent = "";
+    private NativeTerminal terminal;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +52,7 @@ public final class MainActivity extends Activity {
             }
         });
         webView.setWebChromeClient(new WebChromeClient());
+        terminal = new NativeTerminal(getFilesDir());
         webView.addJavascriptInterface(new VSACBridge(), "VSACNative");
 
         setContentView(webView);
@@ -65,12 +70,11 @@ public final class MainActivity extends Activity {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("text/plain");
-        intent.putExtra(Intent.EXTRA_TITLE, suggestedName == null || suggestedName.isBlank() ? "untitled.txt" : suggestedName);
+        intent.putExtra(Intent.EXTRA_TITLE,
+                suggestedName == null || suggestedName.isBlank() ? "untitled.txt" : suggestedName);
         pendingSaveContent = content == null ? "" : content;
         startActivityForResult(intent, REQUEST_CREATE);
     }
-
-    private String pendingSaveContent = "";
 
     private void saveToUri(Uri uri, String content) {
         try (OutputStream out = getContentResolver().openOutputStream(uri, "wt")) {
@@ -87,7 +91,7 @@ public final class MainActivity extends Activity {
     private void notifySaveResult(boolean ok, String message) {
         if (webView == null) return;
         String payload = "window.VSAC&&window.VSAC.nativeSaveResult(" +
-                JSONObject.quote(ok ? message : "ERROR: " + message) + "," + ok + ");";
+                JSONObject.quote(message) + "," + ok + ");";
         runOnUiThread(() -> webView.evaluateJavascript(payload, null));
     }
 
@@ -101,7 +105,38 @@ public final class MainActivity extends Activity {
 
     private void notifyOpenError(String message) {
         if (webView == null) return;
-        String payload = "window.VSAC&&window.VSAC.nativeOpenError(" + JSONObject.quote(message) + ");";
+        String payload = "window.VSAC&&window.VSAC.nativeOpenError(" +
+                JSONObject.quote(message == null ? "Open failed" : message) + ");";
+        runOnUiThread(() -> webView.evaluateJavascript(payload, null));
+    }
+
+    private void notifyTerminalResult(int exitCode, String output) {
+        if (webView == null) return;
+        String payload = "window.VSAC&&window.VSAC.nativeTerminalResult(" +
+                exitCode + "," + JSONObject.quote(output == null ? "" : output) + ");";
+        runOnUiThread(() -> webView.evaluateJavascript(payload, null));
+    }
+
+    private void notifyTerminalError(String message) {
+        if (webView == null) return;
+        String payload = "window.VSAC&&window.VSAC.nativeTerminalError(" +
+                JSONObject.quote(message == null ? "Terminal failed" : message) + ");";
+        runOnUiThread(() -> webView.evaluateJavascript(payload, null));
+    }
+
+    private void notifyApiResult(int status, String headers, String body, String redirect) {
+        if (webView == null) return;
+        String payload = "window.VSAC&&window.VSAC.nativeApiResult(" +
+                status + "," + JSONObject.quote(headers == null ? "" : headers) + "," +
+                JSONObject.quote(body == null ? "" : body) + "," +
+                JSONObject.quote(redirect == null ? "" : redirect) + ");";
+        runOnUiThread(() -> webView.evaluateJavascript(payload, null));
+    }
+
+    private void notifyApiError(String message) {
+        if (webView == null) return;
+        String payload = "window.VSAC&&window.VSAC.nativeApiError(" +
+                JSONObject.quote(message == null ? "API request failed" : message) + ");";
         runOnUiThread(() -> webView.evaluateJavascript(payload, null));
     }
 
@@ -126,12 +161,20 @@ public final class MainActivity extends Activity {
     private void readTextFile(Uri uri) {
         try (InputStream in = getContentResolver().openInputStream(uri)) {
             if (in == null) throw new IOException("Unable to open document");
-            byte[] bytes = in.readAllBytes();
+            byte[] bytes = readAll(in);
             String name = uri.getLastPathSegment();
             notifyOpenResult(name, new String(bytes, StandardCharsets.UTF_8));
         } catch (Exception e) {
             notifyOpenError(e.getMessage() == null ? "Open failed" : e.getMessage());
         }
+    }
+
+    private byte[] readAll(InputStream in) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] buffer = new byte[8192];
+        int read;
+        while ((read = in.read(buffer)) != -1) out.write(buffer, 0, read);
+        return out.toByteArray();
     }
 
     public final class VSACBridge {
@@ -157,13 +200,48 @@ public final class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void runTerminal(String command) {
+            if (terminal == null) {
+                notifyTerminalError("Terminal service unavailable");
+                return;
+            }
+            terminal.run(command, new NativeTerminal.Callback() {
+                @Override
+                public void onResult(int exitCode, String output) {
+                    notifyTerminalResult(exitCode, output);
+                }
+
+                @Override
+                public void onError(String message) {
+                    notifyTerminalError(message);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void httpRequest(String method, String url, String headers, String body) {
+            Executors.newSingleThreadExecutor().execute(() -> {
+                try {
+                    NativeHttp.Result result = NativeHttp.request(method, url, headers, body);
+                    notifyApiResult(result.status, result.headers, result.body, result.redirect);
+                } catch (Exception e) {
+                    notifyApiError(e.getMessage() == null ? "API request failed" : e.getMessage());
+                }
+            });
+        }
+
+        @JavascriptInterface
         public String getAppVersion() {
-            return "0.2.0";
+            return "0.3.0";
         }
     }
 
     @Override
     protected void onDestroy() {
+        if (terminal != null) {
+            terminal.shutdown();
+            terminal = null;
+        }
         if (webView != null) {
             webView.removeJavascriptInterface("VSACNative");
             webView.loadUrl("about:blank");
