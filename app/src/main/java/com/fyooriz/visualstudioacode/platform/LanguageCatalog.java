@@ -1,30 +1,48 @@
 package com.fyooriz.visualstudioacode.platform;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
-/** Language capability catalog assembled from the audited Acode language plugins. */
+/** Language capability catalog assembled from audited Acode/VS Code language sources. */
 public final class LanguageCatalog {
     private LanguageCatalog() {}
 
     private static final Map<String, String> EXTENSIONS = Map.ofEntries(
         Map.entry("js", "JavaScript"), Map.entry("mjs", "JavaScript"), Map.entry("cjs", "JavaScript"),
-        Map.entry("ts", "TypeScript"), Map.entry("tsx", "TypeScript"),
-        Map.entry("html", "HTML"), Map.entry("htm", "HTML"), Map.entry("css", "CSS"),
-        Map.entry("json", "JSON"), Map.entry("md", "Markdown"),
-        Map.entry("py", "Python"), Map.entry("java", "Java"), Map.entry("kt", "Kotlin"),
+        Map.entry("jsx", "JavaScript JSX"),
+        Map.entry("ts", "TypeScript"), Map.entry("tsx", "TypeScript TSX"),
+        Map.entry("html", "HTML"), Map.entry("htm", "HTML"),
+        Map.entry("css", "CSS"), Map.entry("scss", "SCSS"), Map.entry("sass", "Sass"), Map.entry("less", "Less"),
+        Map.entry("json", "JSON"), Map.entry("jsonc", "JSON with Comments"), Map.entry("xml", "XML"),
+        Map.entry("svg", "SVG"), Map.entry("md", "Markdown"), Map.entry("markdown", "Markdown"),
+        Map.entry("py", "Python"), Map.entry("pyw", "Python"),
+        Map.entry("java", "Java"), Map.entry("kt", "Kotlin"), Map.entry("kts", "Kotlin Script"),
         Map.entry("go", "Go"), Map.entry("rs", "Rust"), Map.entry("php", "PHP"),
         Map.entry("c", "C"), Map.entry("h", "C/C++"), Map.entry("cc", "C++"), Map.entry("cpp", "C++"),
+        Map.entry("cxx", "C++"), Map.entry("hpp", "C++"),
         Map.entry("cs", "C#"), Map.entry("dart", "Dart"), Map.entry("lua", "Lua"),
-        Map.entry("yaml", "YAML"), Map.entry("yml", "YAML"), Map.entry("tf", "Terraform"),
-        Map.entry("sql", "SQL"), Map.entry("smali", "Smali"), Map.entry("dockerfile", "Dockerfile"),
-        Map.entry("prisma", "Prisma")
+        Map.entry("rb", "Ruby"), Map.entry("r", "R"), Map.entry("swift", "Swift"),
+        Map.entry("m", "Objective-C"), Map.entry("mm", "Objective-C++"),
+        Map.entry("pl", "Perl"), Map.entry("pm", "Perl"), Map.entry("ex", "Elixir"), Map.entry("exs", "Elixir"),
+        Map.entry("hs", "Haskell"), Map.entry("lhs", "Haskell"), Map.entry("clj", "Clojure"), Map.entry("cljs", "ClojureScript"),
+        Map.entry("groovy", "Groovy"), Map.entry("gradle", "Gradle"),
+        Map.entry("sh", "Shell"), Map.entry("bash", "Bash"), Map.entry("zsh", "Zsh"), Map.entry("fish", "Fish"),
+        Map.entry("bat", "Batch"), Map.entry("ps1", "PowerShell"),
+        Map.entry("yaml", "YAML"), Map.entry("yml", "YAML"), Map.entry("toml", "TOML"),
+        Map.entry("ini", "INI"), Map.entry("conf", "Config"), Map.entry("env", "Env"),
+        Map.entry("tf", "Terraform"), Map.entry("hcl", "HCL"),
+        Map.entry("sql", "SQL"), Map.entry("graphql", "GraphQL"), Map.entry("gql", "GraphQL"),
+        Map.entry("smali", "Smali"), Map.entry("prisma", "Prisma"),
+        Map.entry("vue", "Vue"), Map.entry("svelte", "Svelte"),
+        Map.entry("dockerfile", "Dockerfile"), Map.entry("makefile", "Makefile")
     );
 
     public static String fromName(String name) {
         if (name == null || name.isBlank()) return "Plain Text";
-        String lower = name.toLowerCase();
+        String lower = name.toLowerCase(Locale.ROOT);
         if (lower.equals("dockerfile")) return "Dockerfile";
+        if (lower.equals("makefile")) return "Makefile";
         int dot = lower.lastIndexOf('.');
         if (dot < 0 || dot == lower.length() - 1) return "Plain Text";
         return EXTENSIONS.getOrDefault(lower.substring(dot + 1), "Plain Text");
@@ -32,9 +50,12 @@ public final class LanguageCatalog {
 
     public static List<String> supported() {
         return List.of(
-            "JavaScript", "TypeScript", "HTML", "CSS", "JSON", "Markdown", "Python", "Java", "Kotlin",
-            "Go", "Rust", "PHP", "C", "C++", "C#", "Dart", "Lua", "YAML", "Terraform", "SQL",
-            "Smali", "Dockerfile", "Prisma", "Plain Text"
+            "JavaScript", "JavaScript JSX", "TypeScript", "TypeScript TSX", "HTML", "CSS", "SCSS", "Sass", "Less",
+            "JSON", "JSON with Comments", "XML", "SVG", "Markdown", "Python", "Java", "Kotlin", "Kotlin Script",
+            "Go", "Rust", "PHP", "C", "C/C++", "C++", "C#", "Dart", "Lua", "Ruby", "R", "Swift",
+            "Objective-C", "Objective-C++", "Perl", "Elixir", "Haskell", "Clojure", "ClojureScript", "Groovy", "Gradle",
+            "Shell", "Bash", "Zsh", "Fish", "Batch", "PowerShell", "YAML", "TOML", "INI", "Config", "Env",
+            "Terraform", "HCL", "SQL", "GraphQL", "Smali", "Prisma", "Vue", "Svelte", "Dockerfile", "Makefile", "Plain Text"
         );
     }
 }
