@@ -33,6 +33,12 @@ public final class EngineContracts {
     public interface TerminalBackend {
         CompletableFuture<TerminalResult> execute(String command);
     }
+    /** WorkspaceCore-owned local filesystem abstraction. */
+    public interface WorkspaceFileSystem {
+        void modify(String uri, String content) throws Exception;
+        void create(String parentUri, String displayName, String content) throws Exception;
+        void delete(String uri) throws Exception;
+    }
     public interface SourceControl {
         CompletableFuture<String> status(String repositoryPath);
     }
