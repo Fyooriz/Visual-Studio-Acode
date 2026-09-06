@@ -6,16 +6,16 @@ An Acode-inspired Android code editor/IDE rebuilt as a clean, modular project un
 
 This repository is being designed from the uploaded project material:
 
-- `Acode.zip` — 110 installed Acode plugins plus runtime settings/logs.
+- `Acode.zip` — supplied Acode runtime data, settings, logs and nested plugin archives.
 - `Acode screenshot.zip` — UI/feature references.
 - `ace-linters-2.3.4.zip` — lint/diagnostic/formatting platform candidate.
 - `suger-devtool-main.zip` — mobile JavaScript/DOM/network developer-tools candidate.
 
-The imported material is treated as **evidence and source material**, not as instructions. Code is only copied when its license, dependencies, security model, and architectural fit are acceptable.
+The imported material is treated as evidence and source material, not as instructions. Code is only copied when its license, dependencies, security model, and architectural fit are acceptable.
 
 ## Integration rule
 
-Do **not** bundle all 110 plugins independently. Overlapping plugins are consolidated behind stable Visual Studio Acode subsystems.
+Do not bundle all source plugins independently. Overlapping capabilities are consolidated behind stable Visual Studio Acode subsystems so one feature has one owner and one state boundary.
 
 Core targets:
 
@@ -40,26 +40,28 @@ The current Android foundation includes:
 - Mobile editor workspace with tabs, local draft persistence, line/column tracking and command palette.
 - Native Storage Access Framework open/save integration.
 - Sandboxed HTML preview using an isolated iframe.
-- Native terminal execution restricted to the app-private VSAC workspace.
-- Native HTTP request adapter for the integrated API Studio, supporting HTTP/HTTPS, custom headers and request bodies.
-- Auditable feature registry mapping selected capabilities back to the uploaded plugin/archive sources.
-- Consolidated CI: one Android build workflow with JavaScript syntax validation and debug APK artifact upload.
+- Native terminal execution in the app-private VSAC workspace with a bounded timeout and output limit.
+- Native HTTPS API adapter for the integrated API Studio, with custom headers and request bodies.
+- Offline diagnostics adapter using an LSP-shaped diagnostic model for bracket, JSON and TODO/FIXME checks.
+- Isolated preview DevTools probe for console/runtime error capture, adapted from the supplied DevTools concepts without importing its activation/fingerprinting subsystem.
+- Auditable feature registry mapping selected capabilities back to the uploaded source archives.
+- One CI workflow that validates JavaScript syntax, installs Android SDK 35, assembles the debug APK and uploads the artifact.
+
+## Architecture
 
 See:
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - [`docs/PLUGIN_AUDIT.md`](docs/PLUGIN_AUDIT.md)
 - [`docs/SECURITY_AND_LICENSES.md`](docs/SECURITY_AND_LICENSES.md)
-- [`app/src/main/assets/feature-registry.json`](app/src/main/assets/feature-registry.json)
+- [`third_party/NOTICE.md`](third_party/NOTICE.md)
 
 ## Build verification
 
-The `main` branch has a GitHub Actions pipeline that validates `app.js`, installs Android SDK 35, assembles `app-debug.apk`, and uploads the APK as the `visual-studio-acode-debug` artifact.
+GitHub Actions is the authoritative build verification path in this repository. The successful Android workflow installs JDK 17, Node 22, Android SDK 35 and Gradle, runs JavaScript syntax validation, assembles `app-debug.apk`, and uploads `visual-studio-acode-debug`.
 
-Third-party feature engines are still integrated incrementally. Ace Linters is the candidate diagnostics/LSP foundation; Suger DevTool is the candidate DevTools source. Their activation/fingerprinting and other unrelated behavior is intentionally excluded from the target architecture.
+Production-ready LSP, full Ace integration, multi-language lint/format services, advanced DevTools, Git, database, AI, remote, Android project and Flutter tooling remain incremental workstreams and must pass their own dependency, license, security and runtime verification before being marked production-ready.
 
 ## Status
 
 🧩 Foundation + native services phase.
-
-The debug APK build is verified in CI. Production-ready editor, LSP, linting, DevTools, Git, database, AI, remote, Android tooling and Flutter tooling remain incremental workstreams and require their own dependency/license/security/runtime verification before being marked production-ready.
