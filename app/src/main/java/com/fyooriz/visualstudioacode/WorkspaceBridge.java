@@ -137,14 +137,20 @@ public final class WorkspaceBridge implements EngineContracts.WorkspaceFileSyste
         if (mime != null && mime.startsWith("text/")) return true;
         String lower = name == null ? "" : name.toLowerCase(Locale.ROOT);
         String[] extensions = {
-                ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".html", ".htm", ".css", ".scss", ".less",
-                ".json", ".xml", ".svg", ".md", ".markdown", ".txt", ".csv", ".yaml", ".yml", ".toml",
-                ".py", ".java", ".kt", ".kts", ".go", ".rs", ".c", ".h", ".cc", ".cpp", ".hpp", ".cs",
-                ".dart", ".php", ".rb", ".lua", ".sh", ".bash", ".zsh", ".fish", ".sql", ".tf",
-                ".dockerfile", ".gradle", ".properties", ".ini", ".conf", ".env"
+                ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".html", ".htm", ".css", ".scss", ".sass", ".less",
+                ".json", ".jsonc", ".xml", ".svg", ".md", ".markdown", ".txt", ".csv", ".yaml", ".yml", ".toml",
+                ".py", ".java", ".kt", ".kts", ".go", ".rs", ".c", ".h", ".cc", ".cpp", ".cxx", ".hpp", ".cs",
+                ".dart", ".php", ".rb", ".lua", ".r", ".swift", ".m", ".mm", ".pl", ".pm", ".ex", ".exs",
+                ".hs", ".lhs", ".clj", ".cljs", ".groovy", ".gradle", ".scala", ".sc", ".fs", ".fsi", ".fsx",
+                ".vb", ".vbs", ".jl", ".zig", ".nim", ".pas", ".pp", ".f", ".for", ".f77", ".f90", ".f95",
+                ".f03", ".f08", ".asm", ".s", ".v", ".vh", ".sv", ".svh", ".vhd", ".vhdl", ".proto",
+                ".cu", ".cuh", ".glsl", ".vert", ".frag", ".hlsl", ".wgsl", ".sol", ".tex", ".sty", ".bib",
+                ".cmake", ".bzl", ".star", ".sh", ".bash", ".zsh", ".fish", ".bat", ".ps1", ".tf", ".hcl",
+                ".sql", ".graphql", ".gql", ".smali", ".prisma", ".vue", ".svelte", ".properties", ".ini", ".conf", ".env"
         };
         for (String ext : extensions) if (lower.endsWith(ext)) return true;
-        return lower.equals("dockerfile") || lower.equals("makefile") || lower.endsWith(".gitignore");
+        return lower.equals("dockerfile") || lower.equals("makefile") || lower.equals("cmakelists.txt")
+                || lower.equals("build") || lower.equals("workspace") || lower.endsWith(".gitignore");
     }
 
     private Uri resolveTreeUri(String treeUriString) throws IOException {
