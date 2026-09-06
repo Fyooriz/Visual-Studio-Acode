@@ -26,6 +26,8 @@ jobs:
           node-version: '22'
       - name: Validate project governance
         run: node tools/validate-project-governance.js
+      - name: Validate security contracts
+        run: node tools/test-security-contracts.js
       - name: Validate all JavaScript
         shell: bash
         run: |
