@@ -31,6 +31,7 @@ public final class MainActivity extends Activity {
     private static final int REQUEST_CREATE = 4102;
     private static final int REQUEST_WORKSPACE = 4103;
     private static final int HTTP_TIMEOUT_MILLIS = 15000;
+    private static final boolean TERMINAL_SECURITY_GATE_PASSED = false;
 
     private WebView webView;
     private Uri currentDocumentUri;
@@ -197,6 +198,10 @@ public final class MainActivity extends Activity {
     }
 
     private void runTerminal(String command) {
+        if (!TERMINAL_SECURITY_GATE_PASSED) {
+            notifyTerminalError("Terminal execution is blocked until the OS/container security baseline is verified.");
+            return;
+        }
         if (nativeTerminal == null) { notifyTerminalError("Terminal is not initialized"); return; }
         nativeTerminal.run(command, new NativeTerminal.Callback() {
             @Override public void onResult(int exitCode, String output) { notifyTerminalResult(exitCode, output); }
