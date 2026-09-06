@@ -13,7 +13,41 @@
     return (lines[row] || '').match(/^\s*/)?.[0] || '';
   }
 
+  function expandSnippet(textarea) {
+    const snippets = window.VSACSnippets;
+    if (!snippets) return false;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    if (start !== end) return false;
+    const lineStart = textarea.value.lastIndexOf('\n', start - 1) + 1;
+    const prefix = textarea.value.slice(lineStart, start).match(/[A-Za-z0-9_.$:-]+$/)?.[0] || '';
+    if (!prefix) return false;
+
+    const language = textarea.dataset.language || '';
+    const body = snippets.get(prefix, language);
+    if (!body) return false;
+
+    let firstPlaceholder = -1;
+    let firstLength = 0;
+    const expanded = body.replace(/\$\{(\d+)(?::([^}]*))?\}|\$(\d+)/g, (match, longIndex, defaultText, shortIndex) => {
+      const index = Number(longIndex || shortIndex || 0);
+      const replacement = defaultText ?? '';
+      if (index !== 0 && firstPlaceholder === -1) {
+        firstPlaceholder = replacement.length === 0 ? 0 : 0;
+        firstLength = replacement.length;
+      }
+      return replacement;
+    });
+
+    textarea.setRangeText(expanded, start - prefix.length, end, 'end');
+    const base = start - prefix.length;
+    const cursor = firstPlaceholder === -1 ? base + expanded.length : base + firstPlaceholder;
+    textarea.setSelectionRange(cursor, cursor + firstLength);
+    return true;
+  }
+
   function smartTab(textarea) {
+    if (expandSnippet(textarea)) return true;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const value = textarea.value;
@@ -147,10 +181,11 @@
   }
 
   window.VSACEditor = Object.freeze({
-    version: '0.1.1',
+    version: '0.2.0',
     attach: expose,
     smartTab,
     smartEnter,
+    expandSnippet,
   });
 
   document.addEventListener('DOMContentLoaded', () => expose(document.querySelector('#editor')));
