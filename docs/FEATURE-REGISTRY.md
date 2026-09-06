@@ -17,7 +17,7 @@ A feature may use only: `PLANNED`, `IMPLEMENTING`, `IMPLEMENTED`, `INTEGRATED`, 
 | LSP | `LanguagePlatform` | `ace-linters-2.3.4.zip`, `jobians.lsp.client` | `IMPLEMENTED` | Runtime/test evidence still incomplete. |
 | Diagnostics | `LanguagePlatform` | `ace-linters-2.3.4.zip` | `IMPLEMENTED` | Runtime/test evidence still incomplete. |
 | Formatting | `BuildExecutionPlatform` | Prettier/Python formatter sources | `IMPLEMENTED` | Built-in formatter coverage exists; broader formatter verification remains incomplete. |
-| Terminal | `BuildExecutionPlatform` | `bajrangcoder.acodex`, code runner family | `BLOCKED` | CI build passes, static security gates pass, but strong OS/container isolation and explicit CPU/memory quota enforcement are still missing. |
+| Terminal | `BuildExecutionPlatform` | `bajrangcoder.acodex`, code runner family | `BLOCKED` | CI build passes, static security gates and JVM policy tests pass, but strong OS/container isolation and explicit CPU/memory quota enforcement are still missing. |
 | Execution | `BuildExecutionPlatform` | code runner family | `IMPLEMENTED` | Runtime/security verification remains incomplete. |
 | HTML preview | `WebPlatform` | preview plugin family | `IMPLEMENTED` | Runtime/security verification remains incomplete. |
 | API Studio | `WebPlatform` | API client/REST plugin family | `IMPLEMENTED` | Runtime/test verification remains incomplete. |
@@ -48,10 +48,17 @@ The project registry explicitly retains these user-provided sources as evidence/
 - `ace-linters-2.3.4.zip`
 - `suger-devtool-main.zip`
 
+Governance inputs supplied separately are also retained as evidence:
+
+- `Prompt.md`
+- `text.txt`
+
+SHA-256 fingerprints for the external uploads are recorded in `app/src/main/assets/feature-registry.json` so future audits can detect a changed source file without treating external uploads as repository implementation code.
+
 Useful functionality is adapted behind the owning subsystem. Conflicting or overlapping implementations are inspected and merged/wrapped/replaced rather than blindly bundled as independent plugin runtimes.
 
 ## Current implementation boundary
 
 The Android/WebView foundation currently covers the mobile shell/editor workspace, tabs/document state, recovery/draft state, command palette, Storage Access Framework document I/O, isolated HTML preview, native HTTPS API access, diagnostics UI, formatter foundation, and the audited terminal boundary.
 
-The terminal remains deliberately `BLOCKED` until its security baseline is satisfied. The CI system has now produced a debug APK for the terminal-hardening commit, but that is build evidence, not runtime/security verification.
+The terminal remains deliberately `BLOCKED` until its security baseline is satisfied. CI has now produced debug APKs for the terminal-hardening and contract/unit-test commits, but build evidence is not runtime/security verification.
