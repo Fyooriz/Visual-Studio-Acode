@@ -51,7 +51,7 @@ The repository retains all supplied source material as evidence. In addition to 
 - `Prompt.md`
 - `text.txt`
 
-SHA-256 fingerprints for the latest upload containers are recorded in `app/src/main/assets/feature-registry.json` and cross-checked against `docs/SOURCE-MANIFEST-2026-09-06.json` by the governance validator. The detailed source-level findings are recorded in `docs/SOURCE-AUDIT-2026-09-06.md`.
+SHA-256 fingerprints for the latest upload containers are recorded in `app/src/main/assets/feature-registry.json` and cross-checked against `docs/SOURCE-MANIFEST-2026-09-06.json` by the governance validator. The validator also cross-checks canonical feature ownership between the machine registry and `app/src/main/java/com/fyooriz/visualstudioacode/platform/FeatureRegistry.java`, preventing stale Java subsystem owners from silently returning. The detailed source-level findings are recorded in `docs/SOURCE-AUDIT-2026-09-06.md`.
 
 Useful functionality is adapted behind the owning subsystem. Conflicting or overlapping implementations are inspected and merged/wrapped/replaced rather than blindly bundled as independent plugin runtimes.
 
