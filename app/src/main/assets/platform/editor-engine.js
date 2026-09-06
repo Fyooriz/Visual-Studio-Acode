@@ -3,6 +3,9 @@
 
   const BRACKETS = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'", '`': '`' };
   const CLOSE = new Set(Object.values(BRACKETS));
+  let completion = null;
+  let completionItems = [];
+  let completionIndex = 0;
 
   function isQuote(ch) {
     return ch === '"' || ch === "'" || ch === '`';
@@ -13,37 +16,92 @@
     return (lines[row] || '').match(/^\s*/)?.[0] || '';
   }
 
-  function expandSnippet(textarea) {
-    const snippets = window.VSACSnippets;
-    if (!snippets) return false;
+  function currentPrefix(textarea) {
     const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    if (start !== end) return false;
+    if (start !== textarea.selectionEnd) return '';
     const lineStart = textarea.value.lastIndexOf('\n', start - 1) + 1;
-    const prefix = textarea.value.slice(lineStart, start).match(/[A-Za-z0-9_.$:-]+$/)?.[0] || '';
-    if (!prefix) return false;
+    return textarea.value.slice(lineStart, start).match(/[A-Za-z0-9_.$:-]+$/)?.[0] || '';
+  }
 
-    const language = textarea.dataset.language || '';
-    const body = snippets.get(prefix, language);
+  function expandSnippetPrefix(textarea, prefix) {
+    const body = window.VSACSnippets?.get(prefix, textarea.dataset.language || '');
     if (!body) return false;
-
-    let firstPlaceholder = -1;
+    const start = textarea.selectionStart - prefix.length;
+    let firstIndex = -1;
     let firstLength = 0;
     const expanded = body.replace(/\$\{(\d+)(?::([^}]*))?\}|\$(\d+)/g, (match, longIndex, defaultText, shortIndex) => {
       const index = Number(longIndex || shortIndex || 0);
       const replacement = defaultText ?? '';
-      if (index !== 0 && firstPlaceholder === -1) {
-        firstPlaceholder = replacement.length === 0 ? 0 : 0;
+      if (index > 0 && firstIndex === -1) {
+        firstIndex = 0;
         firstLength = replacement.length;
       }
       return replacement;
     });
-
-    textarea.setRangeText(expanded, start - prefix.length, end, 'end');
-    const base = start - prefix.length;
-    const cursor = firstPlaceholder === -1 ? base + expanded.length : base + firstPlaceholder;
+    textarea.setRangeText(expanded, start, textarea.selectionEnd, 'end');
+    const cursor = firstIndex === -1 ? start + expanded.length : start + firstIndex;
     textarea.setSelectionRange(cursor, cursor + firstLength);
+    hideCompletion();
     return true;
+  }
+
+  function expandSnippet(textarea) {
+    const prefix = currentPrefix(textarea);
+    return prefix ? expandSnippetPrefix(textarea, prefix) : false;
+  }
+
+  function ensureCompletionElement() {
+    if (completion) return completion;
+    completion = document.createElement('div');
+    completion.className = 'vsac-completion hidden';
+    completion.setAttribute('role', 'listbox');
+    document.body.appendChild(completion);
+    return completion;
+  }
+
+  function renderCompletion(textarea) {
+    const box = ensureCompletionElement();
+    const prefix = currentPrefix(textarea);
+    completionItems = window.VSACSnippets?.list(textarea.dataset.language || '', prefix).slice(0, 12) || [];
+    completionIndex = Math.max(0, Math.min(completionIndex, completionItems.length - 1));
+    box.innerHTML = '';
+    if (!completionItems.length) {
+      hideCompletion();
+      return false;
+    }
+    completionItems.forEach((item, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = index === completionIndex ? 'active' : '';
+      button.textContent = item.prefix;
+      button.setAttribute('role', 'option');
+      button.onclick = () => expandSnippetPrefix(textarea, item.prefix);
+      box.appendChild(button);
+    });
+    box.classList.remove('hidden');
+    return true;
+  }
+
+  function showCompletion(textarea) {
+    completionIndex = 0;
+    return renderCompletion(textarea);
+  }
+
+  function hideCompletion() {
+    completion?.classList.add('hidden');
+  }
+
+  function moveCompletion(delta, textarea) {
+    if (!completion || completion.classList.contains('hidden')) return false;
+    if (!completionItems.length) return true;
+    completionIndex = (completionIndex + delta + completionItems.length) % completionItems.length;
+    renderCompletion(textarea);
+    return true;
+  }
+
+  function acceptCompletion(textarea) {
+    if (!completion || completion.classList.contains('hidden') || !completionItems.length) return false;
+    return expandSnippetPrefix(textarea, completionItems[completionIndex].prefix);
   }
 
   function smartTab(textarea) {
@@ -77,6 +135,7 @@
   }
 
   function smartEnter(textarea) {
+    if (acceptCompletion(textarea)) return true;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const value = textarea.value;
@@ -143,7 +202,32 @@
     textarea.setAttribute('autocomplete', 'off');
     textarea.setAttribute('autocorrect', 'off');
 
+    const languageNode = document.querySelector('#language');
+    const syncLanguage = () => { textarea.dataset.language = languageNode?.textContent || ''; };
+    syncLanguage();
+    if (languageNode && window.MutationObserver) new MutationObserver(syncLanguage).observe(languageNode, { childList: true, characterData: true, subtree: true });
+
     textarea.addEventListener('keydown', (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.code === 'Space') {
+        stopHandled(event);
+        showCompletion(textarea);
+        return;
+      }
+      if (event.key === 'ArrowDown' && completion && !completion.classList.contains('hidden')) {
+        stopHandled(event);
+        moveCompletion(1, textarea);
+        return;
+      }
+      if (event.key === 'ArrowUp' && completion && !completion.classList.contains('hidden')) {
+        stopHandled(event);
+        moveCompletion(-1, textarea);
+        return;
+      }
+      if (event.key === 'Escape' && completion && !completion.classList.contains('hidden')) {
+        stopHandled(event);
+        hideCompletion();
+        return;
+      }
       if (event.key === 'Tab') {
         stopHandled(event);
         smartTab(textarea);
@@ -171,21 +255,25 @@
       }
     });
 
-    textarea.addEventListener('paste', () => {
-      requestAnimationFrame(() => textarea.dispatchEvent(new Event('input', { bubbles: true })));
-    });
-
     textarea.addEventListener('input', () => {
       textarea.dataset.editorReady = '1';
+      if (completion && !completion.classList.contains('hidden')) renderCompletion(textarea);
+    });
+
+    textarea.addEventListener('blur', () => setTimeout(hideCompletion, 120));
+    textarea.addEventListener('paste', () => {
+      requestAnimationFrame(() => textarea.dispatchEvent(new Event('input', { bubbles: true })));
     });
   }
 
   window.VSACEditor = Object.freeze({
-    version: '0.2.0',
+    version: '0.3.0',
     attach: expose,
     smartTab,
     smartEnter,
     expandSnippet,
+    showCompletion,
+    hideCompletion,
   });
 
   document.addEventListener('DOMContentLoaded', () => expose(document.querySelector('#editor')));
