@@ -28,6 +28,8 @@ jobs:
         run: node tools/validate-project-governance.js
       - name: Validate security contracts
         run: node tools/test-security-contracts.js
+      - name: Validate terminal policy
+        run: node tools/test-terminal-policy.js
       - name: Validate all JavaScript
         shell: bash
         run: |
