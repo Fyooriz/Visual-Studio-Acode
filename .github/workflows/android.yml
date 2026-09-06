@@ -30,6 +30,8 @@ jobs:
         run: node tools/test-security-contracts.js
       - name: Validate terminal policy
         run: node tools/test-terminal-policy.js
+      - name: Validate language runtime
+        run: node tools/test-language-runtime.js
       - name: Validate all JavaScript
         shell: bash
         run: |
