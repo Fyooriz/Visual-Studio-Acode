@@ -15,8 +15,8 @@ final class NativeHttp {
     static Result request(String method, String url, String headers, String body) throws Exception {
         URI uri = URI.create(url);
         String scheme = uri.getScheme();
-        if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme)) {
-            throw new IllegalArgumentException("Only http:// and https:// URLs are allowed");
+        if (!"https".equalsIgnoreCase(scheme)) {
+            throw new IllegalArgumentException("Only HTTPS URLs are allowed by the native API boundary");
         }
         HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
         connection.setRequestMethod(method == null || method.isBlank() ? "GET" : method.toUpperCase());
