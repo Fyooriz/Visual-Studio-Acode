@@ -69,8 +69,7 @@ window.VSAC = {
   nativeOpenResult(name, content) {
     let id = name || 'untitled.txt'; const base = id; let n = 1;
     while (state.files.has(id)) id = `${base}.${n++}`;
-    const ext = id.includes('.') ? id.split('.').pop().toLowerCase() : '';
-    const lang = window.VSACLanguages?.detect(id) || ({ js:'JavaScript',mjs:'JavaScript',cjs:'JavaScript',jsx:'JavaScript JSX',ts:'TypeScript',tsx:'TypeScript TSX',html:'HTML',htm:'HTML',css:'CSS',scss:'SCSS',sass:'Sass',less:'Less',json:'JSON',jsonc:'JSON with Comments',xml:'XML',svg:'SVG',md:'Markdown',py:'Python',pyw:'Python',java:'Java',kt:'Kotlin',kts:'Kotlin Script',go:'Go',rs:'Rust',php:'PHP',c:'C',h:'C/C++',cc:'C++',cpp:'C++',cxx:'C++',hpp:'C++',cs:'C#',dart:'Dart',lua:'Lua',rb:'Ruby',r:'R',swift:'Swift',m:'Objective-C',mm:'Objective-C++',pl:'Perl',pm:'Perl',ex:'Elixir',exs:'Elixir',hs:'Haskell',lhs:'Haskell',clj:'Clojure',cljs:'ClojureScript',groovy:'Groovy',gradle:'Gradle',sh:'Shell',bash:'Bash',zsh:'Zsh',fish:'Fish',bat:'Batch',ps1:'PowerShell',yaml:'YAML',yml:'YAML',toml:'TOML',ini:'INI',conf:'Config',env:'Env',tf:'Terraform',hcl:'HCL',sql:'SQL',graphql:'GraphQL',gql:'GraphQL',smali:'Smali',prisma:'Prisma',vue:'Vue',svelte:'Svelte' })[ext] || 'Plain Text';
+    const lang = window.VSACLanguages?.detect(id) || 'Plain Text';
     addFile(id, lang, content || ''); activate(id); closePanel(); showToast(`Opened ${id}`);
   },
   nativeOpenError(message) { showToast(message || 'Open failed'); },
