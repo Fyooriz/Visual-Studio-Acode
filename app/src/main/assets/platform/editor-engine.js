@@ -53,7 +53,7 @@
     const nextChar = value.slice(end, end + 1);
     const extra = /[{\[]\s*$/.test(trimmed) ? '  ' : '';
     let insertion = '\n' + indent + extra;
-    if (extra && nextChar === '}' && end === start) insertion += '\n' + indent;
+    if (extra && nextChar === '}') insertion += '\n' + indent;
     textarea.setRangeText(insertion, start, end, 'end');
     if (extra && nextChar === '}') {
       const cursor = textarea.selectionStart;
@@ -96,6 +96,11 @@
     return true;
   }
 
+  function stopHandled(event) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+
   function expose(textarea) {
     if (!textarea || textarea.dataset.vsacEditorEngine === '1') return;
     textarea.dataset.vsacEditorEngine = '1';
@@ -106,28 +111,28 @@
 
     textarea.addEventListener('keydown', (event) => {
       if (event.key === 'Tab') {
-        event.preventDefault();
+        stopHandled(event);
         smartTab(textarea);
         textarea.dispatchEvent(new Event('input', { bubbles: true }));
         return;
       }
       if (event.key === 'Backspace' && smartBackspace(textarea)) {
-        event.preventDefault();
+        stopHandled(event);
         textarea.dispatchEvent(new Event('input', { bubbles: true }));
         return;
       }
       if (event.key === 'Enter') {
-        event.preventDefault();
+        stopHandled(event);
         smartEnter(textarea);
         textarea.dispatchEvent(new Event('input', { bubbles: true }));
         return;
       }
       if (skipClosing(textarea, event)) {
-        event.preventDefault();
+        stopHandled(event);
         return;
       }
       if (autoPair(textarea, event)) {
-        event.preventDefault();
+        stopHandled(event);
         textarea.dispatchEvent(new Event('input', { bubbles: true }));
       }
     });
@@ -142,7 +147,7 @@
   }
 
   window.VSACEditor = Object.freeze({
-    version: '0.1.0',
+    version: '0.1.1',
     attach: expose,
     smartTab,
     smartEnter,
