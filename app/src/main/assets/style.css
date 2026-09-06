@@ -53,6 +53,14 @@ button { -webkit-tap-highlight-color: transparent; }
 .vsac-completion.hidden { display: none; }
 .vsac-completion button { border: 0; border-radius: 7px; padding: 10px; background: transparent; color: #c9d1d9; text-align: left; font: 12px/1.2 ui-monospace, monospace; }
 .vsac-completion button.active, .vsac-completion button:active { background: #21262d; color: #f0f6fc; }
+.project-toolbar { display: flex; gap: 6px; padding: 0 0 8px; }
+.project-toolbar button, .project-action { flex: 1; border: 0; border-radius: 8px; padding: 9px 10px; background: #21262d; color: #c9d1d9; text-align: center; }
+.project-root-label { padding: 8px 10px; margin-bottom: 4px; border: 1px solid #30363d; border-radius: 8px; color: #f0f6fc; background: #0d1117; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-row { display: flex; width: 100%; align-items: center; gap: 7px; min-height: 38px; border: 0; border-radius: 7px; padding-right: 8px; background: transparent; color: #c9d1d9; text-align: left; }
+.project-row:active { background: #21262d; }
+.project-icon { width: 18px; color: #8b949e; text-align: center; flex: 0 0 18px; }
+.project-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 12px/1.4 ui-monospace, monospace; }
+.project-empty { padding: 12px 4px; color: #8b949e; }
 .toast { position: fixed; left: 50%; bottom: 42px; transform: translateX(-50%); max-width: calc(100vw - 32px); padding: 9px 12px; border: 1px solid #30363d; border-radius: 9px; background: #161b22; color: #f0f6fc; font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.35); z-index: 30; }
 .toast.hidden { display: none; }
 @media (min-width: 900px) { .panel { left: 50%; right: auto; width: 620px; transform: translateX(-50%); } #editor { font-size: 14px; } }
