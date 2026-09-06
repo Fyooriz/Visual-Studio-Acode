@@ -5,6 +5,8 @@ import android.net.Uri;
 import android.provider.DocumentsContract;
 import android.provider.OpenableColumns;
 
+import com.fyooriz.visualstudioacode.platform.EngineContracts;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -19,7 +21,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
-public final class WorkspaceBridge {
+public final class WorkspaceBridge implements EngineContracts.WorkspaceFileSystem {
     public static final int MAX_TEXT_BYTES = 4 * 1024 * 1024;
 
     private final Context context;
@@ -81,6 +83,11 @@ public final class WorkspaceBridge {
         }
     }
 
+    @Override
+    public void modify(String uriString, String content) throws Exception {
+        write(uriString, content);
+    }
+
     public void write(String uriString, String content) throws Exception {
         byte[] bytes = (content == null ? "" : content).getBytes(StandardCharsets.UTF_8);
         if (bytes.length > MAX_TEXT_BYTES) throw new IOException("Workspace file exceeds 4 MiB limit");
@@ -89,6 +96,25 @@ public final class WorkspaceBridge {
             if (out == null) throw new IOException("Unable to open workspace output stream");
             out.write(bytes);
             out.flush();
+        }
+    }
+
+    @Override
+    public void create(String parentUriString, String displayName, String content) throws Exception {
+        if (parentUriString == null || parentUriString.isBlank()) throw new IOException("No workspace parent selected");
+        if (displayName == null || displayName.isBlank()) throw new IOException("Display name is required");
+        Uri parentUri = Uri.parse(parentUriString);
+        Uri created = DocumentsContract.createDocument(
+                context.getContentResolver(), parentUri, "text/plain", displayName);
+        if (created == null) throw new IOException("Unable to create workspace file");
+        write(created.toString(), content);
+    }
+
+    @Override
+    public void delete(String uriString) throws Exception {
+        if (uriString == null || uriString.isBlank()) throw new IOException("Workspace file URI is required");
+        if (!DocumentsContract.deleteDocument(context.getContentResolver(), Uri.parse(uriString))) {
+            throw new IOException("Unable to delete workspace file");
         }
     }
 
