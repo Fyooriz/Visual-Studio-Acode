@@ -2,6 +2,7 @@ package com.fyooriz.visualstudioacode;
 
 import com.fyooriz.visualstudioacode.platform.AIAuditLog;
 import com.fyooriz.visualstudioacode.platform.AIMutationBroker;
+import com.fyooriz.visualstudioacode.platform.EngineContracts;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -35,6 +36,17 @@ public final class AIMutationBrokerTest {
     }
 
     @Test
+    public void createMutationUsesParentAndDisplayName() throws Exception {
+        RecordingWorkspace workspace = new RecordingWorkspace();
+        AIAuditLog audit = new AIAuditLog();
+        AIMutationBroker broker = new AIMutationBroker(workspace, audit, "provider");
+
+        broker.createFile("workspace", "new.txt", "content", true);
+        assertEquals(List.of("create:workspace:new.txt:content"), workspace.operations);
+        assertEquals("approved", audit.snapshot().get(0).result());
+    }
+
+    @Test
     public void failedMutationIsAuditedAndErrorPropagates() {
         RecordingWorkspace workspace = new RecordingWorkspace();
         workspace.fail = true;
@@ -45,7 +57,7 @@ public final class AIMutationBrokerTest {
         assertEquals("failed", audit.snapshot().get(0).result());
     }
 
-    private static final class RecordingWorkspace implements AIMutationBroker.WorkspaceMutationPort {
+    private static final class RecordingWorkspace implements EngineContracts.WorkspaceFileSystem {
         private final List<String> operations = new ArrayList<>();
         private boolean fail;
 
@@ -56,9 +68,9 @@ public final class AIMutationBrokerTest {
         }
 
         @Override
-        public void create(String target, String content) throws Exception {
+        public void create(String parentUri, String displayName, String content) throws Exception {
             if (fail) throw new Exception("mutation failed");
-            operations.add("create:" + target + ":" + content);
+            operations.add("create:" + parentUri + ":" + displayName + ":" + content);
         }
 
         @Override
