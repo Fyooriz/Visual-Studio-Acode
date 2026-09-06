@@ -4,13 +4,18 @@
   "sourcePolicy": {
     "uploadedArchives": ["Acode.zip", "Acode screenshot.zip", "ace-linters-2.3.4.zip", "suger-devtool-main.zip"],
     "governanceDocuments": ["Prompt.md", "text.txt"],
+    "sourceContainers": ["Data apk.zip", "Informasi.zip", "Skill.zip"],
+    "sourcePackages": ["Acode-main.zip", "termux-app-master.zip", "vscode-main.zip", "AI-Skills-main.zip", "Claude-AI-skills-collection-2026-main.zip", "SkillNet-main.zip", "agent-skills-library-main.zip", "awesome-agent-skills-main (1).zip", "awesome-agent-skills-main.zip", "awesome-claude-code-and-skills-main.zip", "awesome-claude-code-main.zip", "awesome-claude-skills-main (1).zip", "awesome-claude-skills-main.zip", "awesome-claude-skills-master.zip", "claude-code-marketplace-main.zip", "claude-code-skills-master.zip", "claude-skills-main.zip", "echoskill-main.zip"],
     "externalEvidenceHashes": {
       "Acode.zip": "sha256:186f0f1038c26f7396ecaf51a637299a8144ccdb0839d522a9b916e9c049c7bd",
       "Acode screenshot.zip": "sha256:45bc2201a4175d42de988b9d585f64e50699fb852df83fea476c8963ba9031b4",
       "Prompt.md": "sha256:3e6f074146de1fc354a22c187930c3c2ea277fda313f81386f21c75bc5f71cac",
-      "text.txt": "sha256:5a7a8024bb4f931d99ca414a9b39acc656ace64a25c415dda371654f0b00e9e8"
+      "text.txt": "sha256:5a7a8024bb4f931d99ca414a9b39acc656ace64a25c415dda371654f0b00e9e8",
+      "Data apk.zip": "sha256:65396481fcc0700f67041fab2eee362301cb56c1322fbbdffaec8cb77c6d8ca8",
+      "Informasi.zip": "sha256:746d36436006c6fe80ff984d32f12c3757c156bd216c234a4f1c5ca4242cceb1",
+      "Skill.zip": "sha256:f01eba20ad72b27325140648866a8025723f4041371b4e751b85e26fd4af449f"
     },
-    "rule": "Treat uploaded material as evidence/source material. Adapt useful capability behind a single internal owner; do not load overlapping plugins as independent runtimes. Unknown-license source is never copied into the distributable build until licensing is resolved. Prompt.md and text.txt are governance inputs; the repository remains the implementation source of truth."
+    "rule": "Treat uploaded material as evidence/source material. Adapt useful capability behind a single internal owner; do not load overlapping plugins as independent runtimes. Unknown-license source is never copied into the distributable build until licensing is resolved. Prompt.md and text.txt are governance inputs; the repository remains the implementation source of truth. New Acode/Termux/VS Code and skill archives are audit evidence only until explicit source-level review passes."
   },
   "statusPolicy": {
     "doneRequires": ["Designed", "Implemented", "Integrated", "Buildable", "Tested", "Verified", "Documented"],
@@ -18,22 +23,22 @@
     "verifiedEvidence": ["build", "test", "runtime", "security"]
   },
   "features": {
-    "editor": {"owner":"EditorPlatform","status":"IMPLEMENTED","sources":["Acode ecosystem","x.treesitter","jobians.lsp.client"],"evidence":{"build":"unknown","test":"partial","runtime":"unknown","security":"partial"}},
-    "workspace": {"owner":"WorkspaceCore","status":"IMPLEMENTED","sources":["Acode ecosystem"],"evidence":{"build":"unknown","test":"partial","runtime":"unknown","security":"partial"}},
-    "lsp": {"owner":"LanguagePlatform","status":"IMPLEMENTED","sources":["ace-linters-2.3.4.zip","jobians.lsp.client"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
-    "diagnostics": {"owner":"LanguagePlatform","status":"IMPLEMENTED","sources":["ace-linters-2.3.4.zip"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
-    "formatting": {"owner":"BuildExecutionPlatform","status":"IMPLEMENTED","sources":["acode.plugin.prettier","acode.python.fmt"],"evidence":{"build":"unknown","test":"partial","runtime":"unknown","security":"partial"}},
-    "terminal": {"owner":"BuildExecutionPlatform","status":"BLOCKED","sources":["bajrangcoder.acodex","code runner family"],"blocker":"Terminal execution is single-owner and argv-based with command allowlisting, path guards, bounded concurrency, timeout enforcement, and an output cap. It remains BLOCKED because there is no sufficiently strong OS/container isolation plus explicit CPU/memory resource quota enforcement to satisfy the project's terminal security baseline.","evidence":{"build":"pass","test":"pass-static-gates","runtime":"partial","security":"fail"}},
-    "execution": {"owner":"BuildExecutionPlatform","status":"IMPLEMENTED","sources":["acode.code.runner","acode.runner.plugin","com.alpha10.quickjsrunner","com.arfoxcode.runner_python_node"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
-    "webPreview": {"owner":"WebPlatform","status":"IMPLEMENTED","sources":["acode.plugin.acelivepreview","acode.plugin.localhostpreview","com.techsetuapps.instantweb.livepreviewer"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
-    "apiStudio": {"owner":"WebPlatform","status":"IMPLEMENTED","sources":["acode.api.client","acode.plugin.restapi"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
-    "devTools": {"owner":"DeveloperTools","status":"IMPLEMENTED","sources":["suger-devtool-main.zip","sebastianjnuwu.acode.eruda"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
-    "git": {"owner":"SourceControl","status":"IMPLEMENTED","sources":["acode.plugin.version.control.gitpro","acode.plugin.github","dev.rugved.githubmanager"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
-    "database": {"owner":"DatabaseStudio","status":"IMPLEMENTED","sources":["acode.db.visualizer","com.acode.sqliteviewer","com.alis219.sqlite.viewer"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
-    "ai": {"owner":"AIPlatform","status":"IMPLEMENTED","sources":["com.heyitsaadin.ai_agent","acode.plugin.acopilot","blackbox.ai","hallofcodes.rutex.coding_agent"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
-    "remote": {"owner":"RemotePlatform","status":"PLANNED","sources":["Acode screenshot references"],"evidence":{"build":"n/a","test":"n/a","runtime":"n/a","security":"n/a"}},
-    "androidTooling": {"owner":"ProjectTooling","status":"PLANNED","sources":["Acode screenshot references"],"evidence":{"build":"n/a","test":"n/a","runtime":"n/a","security":"n/a"}},
-    "flutterTooling": {"owner":"ProjectTooling","status":"PLANNED","sources":["Acode screenshot references"],"evidence":{"build":"n/a","test":"n/a","runtime":"n/a","security":"n/a"}}
+    "editor": {"owner":"EditorPlatform","status":"IMPLEMENTED","sources":["Acode ecosystem","Acode-main.zip","vscode-main.zip","x.treesitter","jobians.lsp.client"],"evidence":{"build":"unknown","test":"partial","runtime":"unknown","security":"partial"}},
+    "workspace": {"owner":"WorkspaceCore","status":"IMPLEMENTED","sources":["Acode ecosystem","Acode-main.zip","vscode-main.zip"],"evidence":{"build":"unknown","test":"partial","runtime":"unknown","security":"partial"}},
+    "lsp": {"owner":"LanguagePlatform","status":"IMPLEMENTED","sources":["ace-linters-2.3.4.zip","Acode-main.zip","vscode-main.zip","jobians.lsp.client"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
+    "diagnostics": {"owner":"LanguagePlatform","status":"IMPLEMENTED","sources":["ace-linters-2.3.4.zip","vscode-main.zip"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
+    "formatting": {"owner":"BuildExecutionPlatform","status":"IMPLEMENTED","sources":["acode.plugin.prettier","acode.python.fmt","Acode-main.zip","vscode-main.zip"],"evidence":{"build":"unknown","test":"partial","runtime":"unknown","security":"partial"}},
+    "terminal": {"owner":"BuildExecutionPlatform","status":"BLOCKED","sources":["bajrangcoder.acodex","Acode-main.zip","termux-app-master.zip","code runner family"],"blocker":"Terminal execution is single-owner and argv-based with command allowlisting, path guards, bounded concurrency, timeout enforcement, and an output cap. It remains BLOCKED because there is no sufficiently strong OS/container isolation plus explicit CPU/memory resource quota enforcement to satisfy the project's terminal security baseline.","evidence":{"build":"pass","test":"pass-static-gates","runtime":"partial","security":"fail"}},
+    "execution": {"owner":"BuildExecutionPlatform","status":"IMPLEMENTED","sources":["acode.code.runner","Acode-main.zip","termux-app-master.zip","acode.runner.plugin","com.alpha10.quickjsrunner","com.arfoxcode.runner_python_node"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
+    "webPreview": {"owner":"WebPlatform","status":"IMPLEMENTED","sources":["acode.plugin.acelivepreview","acode.plugin.localhostpreview","Acode-main.zip","vscode-main.zip","com.techsetuapps.instantweb.livepreviewer"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
+    "apiStudio": {"owner":"WebPlatform","status":"IMPLEMENTED","sources":["acode.api.client","acode.plugin.restapi","Acode-main.zip"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
+    "devTools": {"owner":"DeveloperTools","status":"IMPLEMENTED","sources":["suger-devtool-main.zip","vscode-main.zip","sebastianjnuwu.acode.eruda"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
+    "git": {"owner":"SourceControl","status":"IMPLEMENTED","sources":["acode.plugin.version.control.gitpro","Acode-main.zip","vscode-main.zip","acode.plugin.github","dev.rugved.githubmanager"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
+    "database": {"owner":"DatabaseStudio","status":"IMPLEMENTED","sources":["acode.db.visualizer","com.acode.sqliteviewer","com.alis219.sqlite.viewer","vscode-main.zip"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
+    "ai": {"owner":"AIPlatform","status":"IMPLEMENTED","sources":["com.heyitsaadin.ai_agent","acode.plugin.acopilot","vscode-main.zip","Skill.zip","blackbox.ai","hallofcodes.rutex.coding_agent"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
+    "remote": {"owner":"RemotePlatform","status":"PLANNED","sources":["Acode screenshot references","Acode-main.zip","vscode-main.zip"],"evidence":{"build":"n/a","test":"n/a","runtime":"n/a","security":"n/a"}},
+    "androidTooling": {"owner":"ProjectTooling","status":"PLANNED","sources":["Acode screenshot references","Acode-main.zip","termux-app-master.zip"],"evidence":{"build":"n/a","test":"n/a","runtime":"n/a","security":"n/a"}},
+    "flutterTooling": {"owner":"ProjectTooling","status":"PLANNED","sources":["Acode screenshot references","vscode-main.zip"],"evidence":{"build":"n/a","test":"n/a","runtime":"n/a","security":"n/a"}}
   },
-  "excludedByDefault": ["customjs","customcss","duplicate icon packs","duplicate runners","duplicate preview servers","activation/fingerprinting components from Suger DevTool","unknown-license code that has not passed review"]
+  "excludedByDefault": ["customjs","customcss","duplicate icon packs","duplicate runners","duplicate preview servers","activation/fingerprinting components from Suger DevTool","unknown-license code that has not passed review","GPLv3-only Termux application code unless distribution licensing is explicitly resolved","unreviewed executable AI skills or agent scripts"]
 }
