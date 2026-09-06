@@ -12,13 +12,10 @@ const commandList = document.querySelector('#command-list');
 const previewBody = document.querySelector('#preview-body');
 const toast = document.querySelector('#toast');
 const workspace = document.querySelector('#workspace');
+const diagnosticsCount = document.querySelector('#diagnostics-count');
 
-const STORAGE_KEY = 'vsac.workspace.v2';
-const state = {
-  activeId: 'main.js',
-  files: new Map(),
-  panelMode: 'commands'
-};
+const STORAGE_KEY = 'vsac.workspace.v3';
+const state = { activeId: 'main.js', files: new Map(), panelMode: 'commands', previewFrame: null };
 
 const COMMANDS = [
   ['New File', () => createUntitled()],
@@ -28,10 +25,10 @@ const COMMANDS = [
   ['Preview HTML', () => previewHtml()],
   ['Terminal', () => openTerminal()],
   ['API Studio', () => openApiStudio()],
-  ['Problems', () => showTool('Problems', 'Diagnostics are connected to the unified LSP/Linter broker. Source adapters from the uploaded Ace Linters package are staged behind this boundary.')],
-  ['DevTools', () => showTool('DevTools', 'Suger-derived console, Elements, Styles, Network and debugger capabilities are isolated behind the internal DevTools adapter.')],
-  ['AI Assistant', () => showTool('AI Assistant', 'AI provider adapters and permissioned project edits are reserved for the AI Platform implementation.')],
-  ['LSP Status', () => showTool('LSP', 'The LSP broker contract is ready. Language adapters are loaded independently so one server cannot duplicate global editor state.')]
+  ['Problems', () => openProblems()],
+  ['DevTools', () => openDevTools()],
+  ['AI Assistant', () => showTool('AI Assistant', 'Provider adapters and permissioned project edits are reserved for the AI Platform implementation.')],
+  ['LSP Status', () => showTool('LSP', 'The language-service broker is isolated from editor globals. Language adapters can be registered independently.')]
 ];
 
 function seed() {
@@ -45,8 +42,8 @@ function seed() {
   }
   if (!state.files.size) {
     addFile('main.js', 'JavaScript', `function hello() {\n  return "Visual Studio Acode";\n}\n\nconsole.log(hello());\n`);
-    addFile('README.md', 'Markdown', '# Visual Studio Acode\n\nMobile-first code editor foundation.\n');
-    addFile('index.html', 'HTML', '<!doctype html>\n<html>\n  <body>\n    <h1>Visual Studio Acode</h1>\n  </body>\n</html>\n');
+    addFile('README.md', 'Markdown', '# Visual Studio Acode\n\nMobile-first developer workspace.\n');
+    addFile('index.html', 'HTML', '<!doctype html>\n<html>\n  <head><title>VSAC</title></head>\n  <body><h1>Visual Studio Acode</h1></body>\n</html>\n');
   }
   activate(state.activeId);
 }
@@ -62,7 +59,6 @@ function createUntitled() {
   addFile(id, 'Plain Text', '');
   activate(id);
   closePanel();
-  persist();
 }
 
 function activate(id) {
@@ -107,8 +103,7 @@ function updatePosition() {
   const before = editor.value.slice(0, editor.selectionStart);
   const line = before.split('\n').length;
   const lastBreak = before.lastIndexOf('\n');
-  const col = before.length - lastBreak;
-  position.textContent = `Ln ${line}, Col ${col}`;
+  position.textContent = `Ln ${line}, Col ${before.length - lastBreak}`;
 }
 
 function sync() {
@@ -116,6 +111,7 @@ function sync() {
   if (file) file.content = editor.value;
   renderGutter();
   updatePosition();
+  runDiagnostics();
   persist();
 }
 
@@ -128,52 +124,82 @@ function markDirty() {
   renderTabs();
   renderGutter();
   updatePosition();
+  runDiagnostics();
   persist();
 }
 
 function persist() {
-  const payload = { activeId: state.activeId, files: [...state.files.values()] };
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch (_) {}
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ activeId: state.activeId, files: [...state.files.values()] })); } catch (_) {}
+}
+
+function runDiagnostics() {
+  if (!window.VSACDiagnostics) return;
+  const file = state.files.get(state.activeId);
+  if (!file) return;
+  const items = window.VSACDiagnostics.validate({ uri: `workspace://${file.id}`, language: file.language, content: editor.value });
+  diagnosticsCount.textContent = `${items.length} problem${items.length === 1 ? '' : 's'}`;
+}
+
+function openProblems() {
+  const file = state.files.get(state.activeId);
+  const items = window.VSACDiagnostics ? window.VSACDiagnostics.validate({ uri: `workspace://${file.id}`, language: file.language, content: editor.value }) : [];
+  openPanel('Problems');
+  hideCommandArea();
+  previewBody.classList.remove('hidden');
+  previewBody.innerHTML = '';
+  if (!items.length) {
+    previewBody.textContent = 'No problems detected.';
+    return;
+  }
+  for (const item of items) {
+    const row = document.createElement('div');
+    row.className = 'problem-row';
+    row.textContent = `${item.severity.toUpperCase()} · ${item.line}:${item.column} · ${item.message}`;
+    previewBody.appendChild(row);
+  }
+}
+
+function openDevTools() {
+  openPanel('DevTools');
+  hideCommandArea();
+  previewBody.classList.remove('hidden');
+  previewBody.innerHTML = `
+    <div class="devtools-actions"><button id="dt-clear">Clear</button><button id="dt-refresh">Refresh</button></div>
+    <pre id="dt-output" class="devtools-output">No preview session.</pre>`;
+  const render = () => {
+    const snap = window.VSACDevTools ? window.VSACDevTools.snapshot() : { logs: [], errors: [], network: [] };
+    document.querySelector('#dt-output').textContent = JSON.stringify(snap, null, 2);
+  };
+  document.querySelector('#dt-clear').onclick = () => { window.VSACDevTools?.clear(); render(); };
+  document.querySelector('#dt-refresh').onclick = render;
+  render();
 }
 
 function openNative() {
-  if (window.VSACNative && typeof window.VSACNative.openTextFile === 'function') {
-    window.VSACNative.openTextFile();
-  } else {
-    showToast('Native file picker is unavailable in this build.');
-  }
+  if (window.VSACNative?.openTextFile) window.VSACNative.openTextFile();
+  else showToast('Native file picker is unavailable in this build.');
 }
 
 function saveCurrent() {
   const file = state.files.get(state.activeId);
   if (!file) return;
   file.content = editor.value;
-  if (window.VSACNative && typeof window.VSACNative.saveTextFile === 'function') {
-    window.VSACNative.saveTextFile(file.content, file.name);
-  } else {
-    file.dirty = false;
-    dirty.textContent = 'Saved locally';
-    renderTabs();
-    persist();
-    showToast('Saved to local workspace.');
-  }
+  if (window.VSACNative?.saveTextFile) window.VSACNative.saveTextFile(file.content, file.name);
+  else { file.dirty = false; dirty.textContent = 'Saved locally'; renderTabs(); persist(); }
 }
 
 function openFind() {
   openPanel('Find');
-  command.placeholder = 'Search in current file…';
   command.value = '';
+  command.placeholder = 'Search in current file…';
   command.oninput = () => {
     const q = command.value;
     let count = 0;
-    if (q) {
-      try { count = (editor.value.match(new RegExp(escapeRegExp(q), 'g')) || []).length; } catch (_) {}
-    }
+    if (q) { try { count = (editor.value.match(new RegExp(escapeRegExp(q), 'g')) || []).length; } catch (_) {} }
     commandList.innerHTML = `<div class="result-row">${count} match${count === 1 ? '' : 'es'}</div>`;
   };
   commandList.innerHTML = '<div class="result-row">Type to search this file.</div>';
   previewBody.classList.add('hidden');
-  commandList.classList.remove('hidden');
   command.focus();
 }
 
@@ -190,29 +216,23 @@ function previewHtml() {
   const frame = document.createElement('iframe');
   frame.className = 'preview-frame';
   frame.setAttribute('sandbox', 'allow-scripts allow-forms allow-modals');
-  frame.srcdoc = file.content;
+  frame.srcdoc = window.VSACDevTools ? window.VSACDevTools.instrumentHtml(file.content) : file.content;
+  state.previewFrame = frame;
   previewBody.appendChild(frame);
 }
 
 function openTerminal() {
   openPanel('Terminal');
-  command.classList.remove('hidden');
-  commandList.classList.remove('hidden');
-  previewBody.classList.add('hidden');
   command.placeholder = 'Enter a shell command…';
   command.value = '';
-  command.oninput = null;
-  commandList.innerHTML = '<div class="terminal-note">Working directory: app-private VSAC workspace</div>';
+  commandList.innerHTML = '<div class="terminal-note">Commands execute only through the native bridge and inherit the app UID boundary.</div>';
   const run = document.createElement('button');
   run.textContent = 'Run command';
   run.onclick = runTerminalCommand;
   commandList.appendChild(run);
-  command.addEventListener('keydown', terminalEnter, { once: true });
+  command.onkeydown = (event) => { if (event.key === 'Enter') runTerminalCommand(); };
+  previewBody.classList.add('hidden');
   command.focus();
-}
-
-function terminalEnter(event) {
-  if (event.key === 'Enter') runTerminalCommand();
 }
 
 function runTerminalCommand() {
@@ -220,25 +240,15 @@ function runTerminalCommand() {
   if (!value) return;
   commandList.insertAdjacentHTML('beforeend', `<div class="terminal-command">$ ${escapeHtml(value)}</div>`);
   command.value = '';
-  if (window.VSACNative && typeof window.VSACNative.runTerminal === 'function') {
-    window.VSACNative.runTerminal(value);
-  } else {
-    commandList.insertAdjacentHTML('beforeend', '<div class="terminal-error">Native terminal unavailable.</div>');
-  }
+  if (window.VSACNative?.runTerminal) window.VSACNative.runTerminal(value);
+  else commandList.insertAdjacentHTML('beforeend', '<div class="terminal-error">Native terminal unavailable.</div>');
 }
 
 function openApiStudio() {
   openPanel('API Studio');
   hideCommandArea();
   previewBody.classList.remove('hidden');
-  previewBody.innerHTML = `
-    <div class="api-form">
-      <div class="api-row"><select id="api-method"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option></select><input id="api-url" placeholder="https://example.com/api" value="https://httpbin.org/get"></div>
-      <textarea id="api-headers" placeholder="Headers, one per line: Authorization: Bearer …"></textarea>
-      <textarea id="api-body" placeholder="Request body (optional)"></textarea>
-      <button id="api-send">Send request</button>
-      <pre id="api-result" class="api-result">Response will appear here.</pre>
-    </div>`;
+  previewBody.innerHTML = `<div class="api-form"><div class="api-row"><select id="api-method"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option></select><input id="api-url" value="https://httpbin.org/get" placeholder="https://example.com/api"></div><textarea id="api-headers" placeholder="Headers, one per line"></textarea><textarea id="api-body" placeholder="Request body (optional)"></textarea><button id="api-send">Send request</button><pre id="api-result" class="api-result">Response will appear here.</pre></div>`;
   document.querySelector('#api-send').onclick = sendApiRequest;
 }
 
@@ -248,29 +258,14 @@ function sendApiRequest() {
   const headers = document.querySelector('#api-headers').value;
   const body = document.querySelector('#api-body').value;
   const result = document.querySelector('#api-result');
-  if (!/^https?:\/\//i.test(url)) {
-    result.textContent = 'Only http:// and https:// URLs are allowed.';
-    return;
-  }
+  if (!/^https?:\/\//i.test(url)) { result.textContent = 'Only http:// and https:// URLs are allowed.'; return; }
   result.textContent = 'Sending…';
-  if (window.VSACNative && typeof window.VSACNative.httpRequest === 'function') {
-    window.VSACNative.httpRequest(method, url, headers, body);
-  } else {
-    result.textContent = 'Native API service unavailable.';
-  }
+  if (window.VSACNative?.httpRequest) window.VSACNative.httpRequest(method, url, headers, body);
+  else result.textContent = 'Native API service unavailable.';
 }
 
-function hideCommandArea() {
-  command.classList.add('hidden');
-  commandList.classList.add('hidden');
-}
-
-function showTool(title, message) {
-  openPanel(title);
-  hideCommandArea();
-  previewBody.classList.remove('hidden');
-  previewBody.textContent = message;
-}
+function hideCommandArea() { command.classList.add('hidden'); commandList.classList.add('hidden'); }
+function showTool(title, message) { openPanel(title); hideCommandArea(); previewBody.classList.remove('hidden'); previewBody.textContent = message; }
 
 function openPanel(title = 'Command Palette') {
   state.panelMode = title;
@@ -285,12 +280,7 @@ function openPanel(title = 'Command Palette') {
   command.focus();
 }
 
-function closePanel() {
-  panel.classList.add('hidden');
-  command.value = '';
-  command.oninput = null;
-  state.panelMode = 'commands';
-}
+function closePanel() { panel.classList.add('hidden'); command.value = ''; command.oninput = null; state.panelMode = 'commands'; }
 
 function renderCommands() {
   const query = command.value.trim().toLowerCase();
@@ -304,67 +294,24 @@ function renderCommands() {
   }
 }
 
-function showToast(message) {
-  toast.textContent = message;
-  toast.classList.remove('hidden');
-  clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => toast.classList.add('hidden'), 1800);
-}
-
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function escapeHtml(value) {
-  const div = document.createElement('div');
-  div.textContent = value;
-  return div.innerHTML;
-}
+function showToast(message) { toast.textContent = message; toast.classList.remove('hidden'); clearTimeout(showToast.timer); showToast.timer = setTimeout(() => toast.classList.add('hidden'), 1800); }
+function escapeRegExp(value) { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function escapeHtml(value) { const div = document.createElement('div'); div.textContent = value; return div.innerHTML; }
 
 window.VSAC = {
   nativeOpenResult(name, content) {
-    let id = name || 'untitled.txt';
-    const base = id;
-    let n = 1;
+    let id = name || 'untitled.txt'; const base = id; let n = 1;
     while (state.files.has(id)) id = `${base}.${n++}`;
     const ext = id.includes('.') ? id.split('.').pop().toLowerCase() : '';
-    const lang = ({ js: 'JavaScript', mjs: 'JavaScript', cjs: 'JavaScript', ts: 'TypeScript', html: 'HTML', htm: 'HTML', css: 'CSS', json: 'JSON', md: 'Markdown', py: 'Python', java: 'Java', kt: 'Kotlin', go: 'Go', rs: 'Rust', php: 'PHP', c: 'C', cpp: 'C++', h: 'C/C++', cs: 'C#', dart: 'Dart', lua: 'Lua', yaml: 'YAML', yml: 'YAML', tf: 'Terraform', sql: 'SQL' })[ext] || 'Plain Text';
-    addFile(id, lang, content || '');
-    activate(id);
-    closePanel();
-    showToast(`Opened ${id}`);
+    const lang = ({ js:'JavaScript',mjs:'JavaScript',cjs:'JavaScript',ts:'TypeScript',html:'HTML',htm:'HTML',css:'CSS',json:'JSON',md:'Markdown',py:'Python',java:'Java',kt:'Kotlin',go:'Go',rs:'Rust',php:'PHP',c:'C',cpp:'C++',h:'C/C++',cs:'C#',dart:'Dart',lua:'Lua',yaml:'YAML',yml:'YAML',tf:'Terraform',sql:'SQL' })[ext] || 'Plain Text';
+    addFile(id, lang, content || ''); activate(id); closePanel(); showToast(`Opened ${id}`);
   },
   nativeOpenError(message) { showToast(message || 'Open failed'); },
-  nativeSaveResult(message, ok) {
-    const file = state.files.get(state.activeId);
-    if (ok && file) {
-      file.dirty = false;
-      dirty.textContent = 'Saved';
-      renderTabs();
-      persist();
-    }
-    showToast(message || (ok ? 'Saved' : 'Save failed'));
-  },
-  nativeTerminalResult(exitCode, output) {
-    if (state.panelMode !== 'Terminal') openPanel('Terminal');
-    command.classList.remove('hidden');
-    commandList.classList.remove('hidden');
-    previewBody.classList.add('hidden');
-    commandList.insertAdjacentHTML('beforeend', `<pre class="terminal-output">${escapeHtml(output || '(no output)')}</pre><div class="terminal-exit">exit ${exitCode}</div>`);
-  },
-  nativeTerminalError(message) {
-    commandList.insertAdjacentHTML('beforeend', `<div class="terminal-error">${escapeHtml(message || 'Terminal failed')}</div>`);
-  },
-  nativeApiResult(status, headers, body, redirect) {
-    const result = document.querySelector('#api-result');
-    if (!result) return;
-    const response = [`HTTP ${status}`, redirect ? `Redirect: ${redirect}` : '', headers ? `\n${headers}` : '', `\n${body || ''}`].filter(Boolean).join('\n');
-    result.textContent = response;
-  },
-  nativeApiError(message) {
-    const result = document.querySelector('#api-result');
-    if (result) result.textContent = `ERROR: ${message || 'API request failed'}`;
-  }
+  nativeSaveResult(message, ok) { const file = state.files.get(state.activeId); if (ok && file) { file.dirty = false; dirty.textContent = 'Saved'; renderTabs(); persist(); } showToast(message || (ok ? 'Saved' : 'Save failed')); },
+  nativeTerminalResult(exitCode, output) { commandList.insertAdjacentHTML('beforeend', `<pre class="terminal-output">${escapeHtml(output || '(no output)')}</pre><div class="terminal-exit">exit ${exitCode}</div>`); },
+  nativeTerminalError(message) { commandList.insertAdjacentHTML('beforeend', `<div class="terminal-error">${escapeHtml(message || 'Terminal failed')}</div>`); },
+  nativeApiResult(status, headers, body, redirect) { const result = document.querySelector('#api-result'); if (result) result.textContent = [`HTTP ${status}`, redirect ? `Redirect: ${redirect}` : '', headers || '', body || ''].filter(Boolean).join('\n'); },
+  nativeApiError(message) { const result = document.querySelector('#api-result'); if (result) result.textContent = `ERROR: ${message || 'API request failed'}`; }
 };
 
 editor.addEventListener('input', markDirty);
@@ -372,26 +319,14 @@ editor.addEventListener('click', updatePosition);
 editor.addEventListener('keyup', updatePosition);
 editor.addEventListener('select', updatePosition);
 editor.addEventListener('scroll', () => { gutter.scrollTop = editor.scrollTop; });
-
 editor.addEventListener('keydown', (event) => {
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
-    event.preventDefault();
-    saveCurrent();
-  }
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'p') {
-    event.preventDefault();
-    openPanel();
-  }
-  if (event.key === 'Tab') {
-    event.preventDefault();
-    const start = editor.selectionStart;
-    const end = editor.selectionEnd;
-    editor.setRangeText('  ', start, end, 'end');
-    markDirty();
-  }
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); saveCurrent(); }
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'p') { event.preventDefault(); openPanel(); }
+  if (event.key === 'Tab') { event.preventDefault(); editor.setRangeText('  ', editor.selectionStart, editor.selectionEnd, 'end'); markDirty(); }
   if (event.key === 'Escape') closePanel();
 });
 
+diagnosticsCount.addEventListener('click', openProblems);
 document.querySelector('#menu').onclick = () => openPanel();
 document.querySelector('#more').onclick = () => openPanel();
 document.querySelector('#save').onclick = saveCurrent;
