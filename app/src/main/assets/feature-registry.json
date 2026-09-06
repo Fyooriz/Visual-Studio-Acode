@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "product": "Visual Studio Acode",
+  "sourcePolicy": {
+    "uploadedArchives": [
+      "Acode.zip",
+      "Acode screenshot.zip",
+      "ace-linters-2.3.4.zip",
+      "suger-devtool-main.zip"
+    ],
+    "rule": "Adapt capability behind a single internal owner. Never load overlapping plugins as independent runtimes."
+  },
+  "features": {
+    "editor": { "status": "foundation", "sources": ["Acode ecosystem", "x.treesitter", "jobians.lsp.client"] },
+    "workspace": { "status": "foundation", "sources": ["Acode ecosystem"] },
+    "lsp": { "status": "adapter-ready", "sources": ["ace-linters-2.3.4.zip", "jobians.lsp.client"] },
+    "diagnostics": { "status": "adapter-ready", "sources": ["ace-linters-2.3.4.zip"] },
+    "formatting": { "status": "adapter-ready", "sources": ["acode.plugin.prettier", "acode.python.fmt"] },
+    "terminal": { "status": "implemented-sandboxed", "sources": ["bajrangcoder.acodex", "code runner family"] },
+    "execution": { "status": "adapter-ready", "sources": ["acode.code.runner", "acode.runner.plugin", "com.alpha10.quickjsrunner", "com.arfoxcode.runner_python_node"] },
+    "webPreview": { "status": "implemented-foundation", "sources": ["acode.plugin.acelivepreview", "acode.plugin.localhostpreview", "com.techsetuapps.instantweb.livepreviewer"] },
+    "apiStudio": { "status": "implemented-native", "sources": ["acode.api.client", "acode.plugin.restapi"] },
+    "devTools": { "status": "adapter-ready", "sources": ["suger-devtool-main.zip", "sebastianjnuwu.acode.eruda"] },
+    "git": { "status": "adapter-ready", "sources": ["acode.plugin.version.control.gitpro", "acode.plugin.github", "dev.rugved.githubmanager"] },
+    "database": { "status": "adapter-ready", "sources": ["acode.db.visualizer", "com.acode.sqliteviewer", "com.alis219.sqlite.viewer"] },
+    "ai": { "status": "adapter-ready", "sources": ["com.heyitsaadin.ai_agent", "acode.plugin.acopilot", "blackbox.ai", "hallofcodes.rutex.coding_agent"] },
+    "remote": { "status": "planned", "sources": ["Acode screenshot references"] },
+    "androidTooling": { "status": "planned", "sources": ["Acode screenshot references"] },
+    "flutterTooling": { "status": "planned", "sources": ["Acode screenshot references"] }
+  },
+  "excludedByDefault": [
+    "customjs",
+    "customcss",
+    "duplicate icon packs",
+    "duplicate runners",
+    "duplicate preview servers",
+    "activation/fingerprinting components from Suger DevTool",
+    "unknown-license code that has not passed review"
+  ]
+}
