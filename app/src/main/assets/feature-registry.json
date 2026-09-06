@@ -3,7 +3,14 @@
   "product": "Visual Studio Acode",
   "sourcePolicy": {
     "uploadedArchives": ["Acode.zip", "Acode screenshot.zip", "ace-linters-2.3.4.zip", "suger-devtool-main.zip"],
-    "rule": "Treat uploaded material as evidence/source material. Adapt useful capability behind a single internal owner; do not load overlapping plugins as independent runtimes. Unknown-license source is never copied into the distributable build until licensing is resolved."
+    "governanceDocuments": ["Prompt.md", "text.txt"],
+    "externalEvidenceHashes": {
+      "Acode.zip": "sha256:186f0f1038c26f7396ecaf51a637299a8144ccdb0839d522a9b916e9c049c7bd",
+      "Acode screenshot.zip": "sha256:45bc2201a4175d42de988b9d585f64e50699fb852df83fea476c8963ba9031b4",
+      "Prompt.md": "sha256:3e6f074146de1fc354a22c187930c3c2ea277fda313f81386f21c75bc5f71cac",
+      "text.txt": "sha256:5a7a8024bb4f931d99ca414a9b39acc656ace64a25c415dda371654f0b00e9e8"
+    },
+    "rule": "Treat uploaded material as evidence/source material. Adapt useful capability behind a single internal owner; do not load overlapping plugins as independent runtimes. Unknown-license source is never copied into the distributable build until licensing is resolved. Prompt.md and text.txt are governance inputs; the repository remains the implementation source of truth."
   },
   "statusPolicy": {
     "doneRequires": ["Designed", "Implemented", "Integrated", "Buildable", "Tested", "Verified", "Documented"],
@@ -16,7 +23,7 @@
     "lsp": {"owner":"LanguagePlatform","status":"IMPLEMENTED","sources":["ace-linters-2.3.4.zip","jobians.lsp.client"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
     "diagnostics": {"owner":"LanguagePlatform","status":"IMPLEMENTED","sources":["ace-linters-2.3.4.zip"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
     "formatting": {"owner":"BuildExecutionPlatform","status":"IMPLEMENTED","sources":["acode.plugin.prettier","acode.python.fmt"],"evidence":{"build":"unknown","test":"partial","runtime":"unknown","security":"partial"}},
-    "terminal": {"owner":"BuildExecutionPlatform","status":"BLOCKED","sources":["bajrangcoder.acodex","code runner family"],"blocker":"Terminal execution is now single-owner and argv-based with command allowlisting, path guards, bounded concurrency, timeout enforcement, and an output cap. It remains BLOCKED because there is no sufficiently strong OS/container isolation plus explicit CPU/memory resource quota enforcement to satisfy the project's terminal security baseline.","evidence":{"build":"pass","test":"pass-static-gates","runtime":"partial","security":"fail"}},
+    "terminal": {"owner":"BuildExecutionPlatform","status":"BLOCKED","sources":["bajrangcoder.acodex","code runner family"],"blocker":"Terminal execution is single-owner and argv-based with command allowlisting, path guards, bounded concurrency, timeout enforcement, and an output cap. It remains BLOCKED because there is no sufficiently strong OS/container isolation plus explicit CPU/memory resource quota enforcement to satisfy the project's terminal security baseline.","evidence":{"build":"pass","test":"pass-static-gates","runtime":"partial","security":"fail"}},
     "execution": {"owner":"BuildExecutionPlatform","status":"IMPLEMENTED","sources":["acode.code.runner","acode.runner.plugin","com.alpha10.quickjsrunner","com.arfoxcode.runner_python_node"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
     "webPreview": {"owner":"WebPlatform","status":"IMPLEMENTED","sources":["acode.plugin.acelivepreview","acode.plugin.localhostpreview","com.techsetuapps.instantweb.livepreviewer"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
     "apiStudio": {"owner":"WebPlatform","status":"IMPLEMENTED","sources":["acode.api.client","acode.plugin.restapi"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
