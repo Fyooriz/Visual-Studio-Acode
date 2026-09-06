@@ -55,8 +55,14 @@ SHA-256 fingerprints for the latest upload containers are recorded in `app/src/m
 
 Useful functionality is adapted behind the owning subsystem. Conflicting or overlapping implementations are inspected and merged/wrapped/replaced rather than blindly bundled as independent plugin runtimes.
 
+## Language coverage boundary
+
+The editor language detection/catalog currently covers more than 50 file-language families, including JavaScript/JSX, TypeScript/TSX, HTML/CSS/SCSS/Sass/Less, JSON/XML/SVG/Markdown, Python, Java, Kotlin, Go, Rust, PHP, C/C++, C#, Dart, Lua, Ruby, R, Swift, Objective-C, Perl, Elixir, Haskell, Clojure, Groovy/Gradle, Shell variants, PowerShell, YAML/TOML/INI/Config/Env, Terraform/HCL, SQL/GraphQL, Smali, Prisma, Vue, Svelte, Dockerfile, Makefile, and Plain Text. Runtime filename detection is owned by `platform/language-runtime.js`; `app.js` consumes that canonical provider instead of maintaining a second fallback map. Declarative snippets are provided separately through `platform/snippet-registry.js`.
+
+The CI pipeline now includes `tools/test-language-runtime.js`, which executes the browser runtime in a Node VM and checks representative mappings across the expanded language set. This validates language detection only; it does not claim compiler/runtime availability or full LSP support for every listed language.
+
 ## Current implementation boundary
 
-The Android/WebView foundation currently covers the mobile shell/editor workspace, tabs/document state, recovery/draft state, command palette, Storage Access Framework document I/O, isolated HTML preview, native HTTPS API access, diagnostics UI, formatter foundation, and the audited terminal boundary.
+The Android/WebView foundation currently covers the mobile shell/editor workspace, tabs/document state, recovery/draft state, command palette, Storage Access Framework document I/O, isolated HTML preview, native HTTPS API access, diagnostics UI, formatter foundation, expanded language detection/snippets, and the audited terminal boundary.
 
-The terminal remains deliberately `BLOCKED` until its security baseline is satisfied. CI build evidence is not equivalent to runtime or security verification.
+The terminal remains deliberately `BLOCKED` until its security baseline is satisfied. CI build evidence is not equivalent to runtime or security verification. Language coverage likewise does not imply that compilers, interpreters, debuggers, or language servers are bundled for every language.
