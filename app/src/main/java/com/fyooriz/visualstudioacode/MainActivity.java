@@ -12,7 +12,6 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -337,7 +336,7 @@ public final class MainActivity extends Activity {
         @JavascriptInterface public void openTextFile() { runOnUiThread(MainActivity.this::openTextFile); }
         @JavascriptInterface public void openWorkspace() { runOnUiThread(MainActivity.this::openWorkspace); }
         @JavascriptInterface public String workspaceList(String parentUri) {
-            try { return workspaceBridge.list(workspaceTreeUri == null ? "" : workspaceTreeUri.toString(), parentUri); }
+            try { return workspaceBridge.list(workspaceTreeUri == null ? "" : workspaceTreeUri.toString(), parentUri).toString(); }
             catch (Exception e) { return "[]"; }
         }
         @JavascriptInterface public void workspaceRead(String uri, String name, String mime) {
