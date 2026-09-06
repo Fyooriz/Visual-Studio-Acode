@@ -18,7 +18,7 @@
       ]
     },
     "Skill.zip": {
-      "sha256": "f01eba20ad72b27325140648866a8025723f4041371b4e751b85bc0b1c6931f",
+      "sha256": "f01eba20ad72b27325140648866a8025723f4041371b4e751b85e26fd4af449f",
       "packages": [
         {"name":"AI-Skills-main.zip","sha256":"76ed4bbd44ff5f123945466a29a28ac2f179037a9c1eaece60a41e0de01ddb3e","decision":"CATALOG_REVIEW"},
         {"name":"Claude-AI-skills-collection-2026-main.zip","sha256":"8d9070468b2a07c5ac616fa2864fbbf05a8ad7f40aa2bafeec73f27d8d6946b7","decision":"CATALOG_REVIEW_LICENSE_REVIEW"},
