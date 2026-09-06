@@ -93,6 +93,12 @@ RemoteFileSystem
 
 The first implementation may be simple. The contract is what prevents future feature additions from recreating the observed Acode runtime conflicts.
 
+### Terminal contract
+
+`TerminalBackend` currently defines a one-shot command execution boundary returning a structured `TerminalResult`. This matches the native terminal implementation available on Android today: validated argv, explicit private workspace, bounded concurrency, timeout enforcement, and output limits.
+
+Interactive terminal sessions (`start/write/stop`) are deliberately not exposed by the current contract until a sandboxed session implementation can satisfy the same security baseline. Adding those methods prematurely would create a misleading abstraction and duplicate ownership.
+
 ## Selected source material
 
 ### `ace-linters-2.3.4.zip`
@@ -111,7 +117,7 @@ Known conflict examples from the uploaded runtime log include duplicate plugin g
 
 ## Security boundaries
 
-- Terminal commands execute only through an explicit execution boundary.
+- Terminal commands execute only through an explicit execution boundary and remain unavailable to the WebView while the terminal security gate is blocked.
 - AI file modifications are permissioned and diff-first by default.
 - Remote filesystem access is isolated from local workspace state.
 - Secrets/tokens are stored outside source files and never injected into project exports.
