@@ -4,21 +4,15 @@ import java.util.Objects;
 
 /**
  * AIPlatform mutation boundary. Providers/skills authorize here, then delegate
- * the actual filesystem operation to a WorkspaceCore-owned port.
+ * the actual filesystem operation to the WorkspaceCore-owned contract.
  */
 public final class AIMutationBroker {
-    public interface WorkspaceMutationPort {
-        void modify(String target, String content) throws Exception;
-        void create(String target, String content) throws Exception;
-        void delete(String target) throws Exception;
-    }
-
-    private final WorkspaceMutationPort workspace;
+    private final EngineContracts.WorkspaceFileSystem workspace;
     private final AIAuditLog auditLog;
     private final String providerId;
 
     public AIMutationBroker(
-        WorkspaceMutationPort workspace,
+        EngineContracts.WorkspaceFileSystem workspace,
         AIAuditLog auditLog,
         String providerId
     ) {
@@ -32,8 +26,11 @@ public final class AIMutationBroker {
         mutate(AIPermissionGate.Action.MODIFY_FILE, target, userApproved, () -> workspace.modify(target, content));
     }
 
-    public void createFile(String target, String content, boolean userApproved) throws Exception {
-        mutate(AIPermissionGate.Action.CREATE_FILE, target, userApproved, () -> workspace.create(target, content));
+    public void createFile(String parentUri, String displayName, String content, boolean userApproved) throws Exception {
+        requireTarget(parentUri);
+        if (displayName == null || displayName.isBlank()) throw new IllegalArgumentException("displayName must be non-blank");
+        mutate(AIPermissionGate.Action.CREATE_FILE, parentUri, userApproved,
+                () -> workspace.create(parentUri, displayName, content));
     }
 
     public void deleteFile(String target, boolean userApproved) throws Exception {
