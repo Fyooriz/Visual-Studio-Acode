@@ -2,6 +2,7 @@ package com.fyooriz.visualstudioacode;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.UriPermission;
 import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.JavascriptInterface;
@@ -11,6 +12,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -29,14 +31,17 @@ import java.util.concurrent.TimeUnit;
 public final class MainActivity extends Activity {
     private static final int REQUEST_OPEN = 4101;
     private static final int REQUEST_CREATE = 4102;
+    private static final int REQUEST_WORKSPACE = 4103;
     private static final int COMMAND_TIMEOUT_SECONDS = 15;
     private static final int HTTP_TIMEOUT_MILLIS = 15000;
 
     private WebView webView;
     private Uri currentDocumentUri;
+    private Uri workspaceTreeUri;
     private String pendingSaveContent = "";
     private ExecutorService ioExecutor;
     private File terminalWorkspace;
+    private WorkspaceBridge workspaceBridge;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +51,8 @@ public final class MainActivity extends Activity {
         if (!terminalWorkspace.exists() && !terminalWorkspace.mkdirs()) {
             throw new IllegalStateException("Unable to create VSAC workspace");
         }
+        workspaceBridge = new WorkspaceBridge(this);
+        restoreWorkspaceUri();
 
         webView = new WebView(this);
         WebSettings settings = webView.getSettings();
@@ -75,6 +82,15 @@ public final class MainActivity extends Activity {
         startActivityForResult(intent, REQUEST_OPEN);
     }
 
+    private void openWorkspace() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+        startActivityForResult(intent, REQUEST_WORKSPACE);
+    }
+
     private void createTextFile(String suggestedName, String content) {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -96,6 +112,30 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private void restoreWorkspaceUri() {
+        android.content.SharedPreferences prefs = getSharedPreferences("vsac", MODE_PRIVATE);
+        String raw = prefs.getString("workspaceTreeUri", "");
+        if (raw == null || raw.isBlank()) return;
+        try {
+            Uri candidate = Uri.parse(raw);
+            boolean granted = false;
+            for (UriPermission permission : getContentResolver().getPersistedUriPermissions()) {
+                if (candidate.equals(permission.getUri()) && permission.isReadPermission()) {
+                    granted = true;
+                    break;
+                }
+            }
+            if (granted) workspaceTreeUri = candidate;
+        } catch (Exception ignored) { }
+    }
+
+    private void persistWorkspaceUri(Uri uri) {
+        workspaceTreeUri = uri;
+        getContentResolver().takePersistableUriPermission(uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        getSharedPreferences("vsac", MODE_PRIVATE).edit().putString("workspaceTreeUri", uri.toString()).apply();
+    }
+
     private void notifySaveResult(boolean ok, String message) {
         if (webView == null) return;
         String payload = "window.VSAC&&window.VSAC.nativeSaveResult(" + JSONObject.quote(message) + "," + ok + ");";
@@ -111,6 +151,30 @@ public final class MainActivity extends Activity {
     private void notifyOpenError(String message) {
         if (webView == null) return;
         String payload = "window.VSAC&&window.VSAC.nativeOpenError(" + JSONObject.quote(message) + ");";
+        runOnUiThread(() -> webView.evaluateJavascript(payload, null));
+    }
+
+    private void notifyWorkspaceResult(String treeUri, String name) {
+        if (webView == null) return;
+        String payload = "window.VSAC&&window.VSAC.workspaceOpened(" + JSONObject.quote(treeUri) + "," + JSONObject.quote(name) + ");";
+        runOnUiThread(() -> webView.evaluateJavascript(payload, null));
+    }
+
+    private void notifyWorkspaceError(String message) {
+        if (webView == null) return;
+        String payload = "window.VSAC&&window.VSAC.workspaceError(" + JSONObject.quote(message) + ");";
+        runOnUiThread(() -> webView.evaluateJavascript(payload, null));
+    }
+
+    private void notifyWorkspaceReadResult(String uri, String name, String mime, String content) {
+        if (webView == null) return;
+        String payload = "window.VSAC&&window.VSAC.workspaceReadResult(" + JSONObject.quote(uri) + "," + JSONObject.quote(name) + "," + JSONObject.quote(mime) + "," + JSONObject.quote(content) + ");";
+        runOnUiThread(() -> webView.evaluateJavascript(payload, null));
+    }
+
+    private void notifyWorkspaceWriteResult(String uri, boolean ok, String message) {
+        if (webView == null) return;
+        String payload = "window.VSAC&&window.VSAC.workspaceWriteResult(" + JSONObject.quote(uri) + "," + ok + "," + JSONObject.quote(message) + ");";
         runOnUiThread(() -> webView.evaluateJavascript(payload, null));
     }
 
@@ -182,6 +246,7 @@ public final class MainActivity extends Activity {
                 applyHeaders(connection, rawHeaders);
                 boolean hasBody = body != null && !body.isEmpty() && !List.of("GET", "HEAD").contains(connection.getRequestMethod());
                 if (hasBody) {
+                    if (body.getBytes(StandardCharsets.UTF_8).length > 2 * 1024 * 1024) throw new IOException("Request body exceeds 2 MiB limit");
                     connection.setDoOutput(true);
                     if (connection.getRequestProperty("Content-Type") == null) connection.setRequestProperty("Content-Type", "application/json");
                     try (OutputStream out = connection.getOutputStream()) { out.write(body.getBytes(StandardCharsets.UTF_8)); }
@@ -236,6 +301,20 @@ public final class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_WORKSPACE) {
+            if (resultCode != RESULT_OK || data == null || data.getData() == null) {
+                notifyWorkspaceError("Workspace selection cancelled");
+                return;
+            }
+            try {
+                Uri uri = data.getData();
+                persistWorkspaceUri(uri);
+                notifyWorkspaceResult(uri.toString(), workspaceBridge.displayName(uri.toString()));
+            } catch (Exception e) {
+                notifyWorkspaceError(e.getMessage() == null ? "Unable to open workspace" : e.getMessage());
+            }
+            return;
+        }
         if (resultCode != RESULT_OK || data == null || data.getData() == null) {
             if (requestCode == REQUEST_OPEN) notifyOpenError("Operation cancelled");
             return;
@@ -256,11 +335,31 @@ public final class MainActivity extends Activity {
 
     public final class VSACBridge {
         @JavascriptInterface public void openTextFile() { runOnUiThread(MainActivity.this::openTextFile); }
+        @JavascriptInterface public void openWorkspace() { runOnUiThread(MainActivity.this::openWorkspace); }
+        @JavascriptInterface public String workspaceList(String parentUri) {
+            try { return workspaceBridge.list(workspaceTreeUri == null ? "" : workspaceTreeUri.toString(), parentUri); }
+            catch (Exception e) { return "[]"; }
+        }
+        @JavascriptInterface public void workspaceRead(String uri, String name, String mime) {
+            if (workspaceTreeUri == null || uri == null || uri.isBlank()) { notifyWorkspaceError("No workspace selected"); return; }
+            if (!workspaceBridge.isLikelyText(name, mime)) { notifyWorkspaceError("Binary or unsupported file: " + name); return; }
+            ioExecutor.execute(() -> {
+                try { notifyWorkspaceReadResult(uri, name, mime, workspaceBridge.read(uri)); }
+                catch (Exception e) { notifyWorkspaceError(e.getMessage() == null ? "Workspace read failed" : e.getMessage()); }
+            });
+        }
+        @JavascriptInterface public void workspaceWrite(String uri, String content) {
+            if (workspaceTreeUri == null || uri == null || uri.isBlank()) { notifyWorkspaceWriteResult(uri, false, "No workspace selected"); return; }
+            ioExecutor.execute(() -> {
+                try { workspaceBridge.write(uri, content); notifyWorkspaceWriteResult(uri, true, "Saved"); }
+                catch (Exception e) { notifyWorkspaceWriteResult(uri, false, e.getMessage() == null ? "Workspace write failed" : e.getMessage()); }
+            });
+        }
         @JavascriptInterface public void saveTextFile(String content, String suggestedName) { runOnUiThread(() -> { if (currentDocumentUri != null) saveToUri(currentDocumentUri, content); else createTextFile(suggestedName, content); }); }
         @JavascriptInterface public void newTextFile() { runOnUiThread(() -> notifyOpenResult("untitled.txt", "")); }
         @JavascriptInterface public void runTerminal(String command) { runOnUiThread(() -> MainActivity.this.runTerminal(command)); }
         @JavascriptInterface public void httpRequest(String method, String url, String headers, String body) { runOnUiThread(() -> MainActivity.this.httpRequest(method, url, headers, body)); }
-        @JavascriptInterface public String getAppVersion() { return "0.3.0"; }
+        @JavascriptInterface public String getAppVersion() { return "0.4.0"; }
     }
 
     @Override
