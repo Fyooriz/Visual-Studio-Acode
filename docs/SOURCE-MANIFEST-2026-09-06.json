@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "generatedFrom": ["Data apk.zip", "Informasi.zip", "Skill.zip"],
+  "containers": {
+    "Data apk.zip": {
+      "sha256": "65396481fcc0700f67041fab2eee362301cb56c1322fbbdffaec8cb77c6d8ca8",
+      "packages": [
+        {"name":"Acode-main.zip","sha256":"3cac3cca517a5131b58531d9e0eb73031bac1bad1d09957df764f82daa31d59f","license":"MIT at root; nested plugins require scope review","decision":"ADAPT_MERGE"},
+        {"name":"termux-app-master.zip","sha256":"a8c69d0441bf0ba1e4191c5c3a0394882f7f8206f52b872b1d7fbba0b1c6931f","license":"GPLv3-only app with documented component exceptions","decision":"ADAPT_DESIGN_LICENSE_GATE"},
+        {"name":"vscode-main.zip","sha256":"d215e4cd9feae09f8c85f4d153d96b18d0e75dbc5ac57791c87e02950a9c4fd7","license":"MIT at root; nested components/dependencies require scope review","decision":"EXTRACT_PATTERNS"}
+      ]
+    },
+    "Informasi.zip": {
+      "sha256": "746d36436006c6fe80ff984d32f12c3757c156bd216c234a4f1c5ca4242cceb1",
+      "packages": [
+        {"name":"Acode screenshot.zip","sha256":"45bc2201a4175d42de988b9d585f64e50699fb852df83fea476c8963ba9031b4","license":"visual evidence; no executable license implied","decision":"UI_EVIDENCE"},
+        {"name":"Acode.zip","sha256":"1e6a8d02c5b0defc19181db1d3e9ab6b360f97355a7dc61046f075347f3fca43","license":"container of supplied source archives; inspect nested licenses","decision":"EVIDENCE_CONTAINER"}
+      ]
+    },
+    "Skill.zip": {
+      "sha256": "f01eba20ad72b27325140648866a8025723f4041371b4e751b85bc0b1c6931f",
+      "packages": [
+        {"name":"AI-Skills-main.zip","sha256":"76ed4bbd44ff5f123945466a29a28ac2f179037a9c1eaece60a41e0de01ddb3e","decision":"CATALOG_REVIEW"},
+        {"name":"Claude-AI-skills-collection-2026-main.zip","sha256":"8d9070468b2a07c5ac616fa2864fbbf05a8ad7f40aa2bafeec73f27d8d6946b7","decision":"CATALOG_REVIEW_LICENSE_REVIEW"},
+        {"name":"SkillNet-main.zip","sha256":"e1315fb9c54a05cfe6ab38ba020596cbe8257dbbebe88d6f4ac60d8fa3cbd12e","decision":"CATALOG_REVIEW"},
+        {"name":"agent-skills-library-main.zip","sha256":"0420731975cf123df44dbd7f609df681c03d7f5ade67ab3dae2b09a2f5e61e2a","decision":"CATALOG_REVIEW_LICENSE_REVIEW"},
+        {"name":"awesome-agent-skills-main (1).zip","sha256":"b516106249d8c23173fb913a5fb571624b50ab767a2b01df6c6c257ae9e570ee","decision":"CATALOG_REVIEW"},
+        {"name":"awesome-agent-skills-main.zip","sha256":"c4b4d1cb875e611693b9457b5f2929b89007e89fd5f0627dee49c0cc4be4288c","decision":"CATALOG_REVIEW"},
+        {"name":"awesome-claude-code-and-skills-main.zip","sha256":"cd35b1be7d2dc75d50374f91c52fd36a71f5b8a9284d00de8fbfabbbcbc5a1f7","decision":"CATALOG_REVIEW"},
+        {"name":"awesome-claude-code-main.zip","sha256":"c50b9d2451f9094a223ddb0636f91e4f3f549b7b5a1686bf8fa1f30de0ccad2b","decision":"CATALOG_REVIEW"},
+        {"name":"awesome-claude-skills-main (1).zip","sha256":"afa192132fb22894db17d6133fa0976ac8a0c70ef0d3dda9c9171bfe6bbe4b11","decision":"CATALOG_REVIEW"},
+        {"name":"awesome-claude-skills-main.zip","sha256":"a706e2ecb6a81e1d769d7a1325153e9a1a90228453129f271cbb82952c117d99","decision":"CATALOG_REVIEW_LICENSE_REVIEW"},
+        {"name":"awesome-claude-skills-master.zip","sha256":"ab53640ad03633efa1fc819d5c783f13e2d80703b7bc40a3ae09ccc391d80176","decision":"CATALOG_REVIEW_COMPONENT_LICENSE_REVIEW"},
+        {"name":"claude-code-marketplace-main.zip","sha256":"9bf0ff6b5fb34d837119f8b798e6680636ffbe08e3287203b5a8d80e1f89b75b","decision":"CATALOG_REVIEW"},
+        {"name":"claude-code-skills-master.zip","sha256":"27dd74cc97d42e16ec0bc70f03c537191eeae5f3a553600559f6f65ccd73048d","decision":"CATALOG_REVIEW_COMPONENT_LICENSE_REVIEW"},
+        {"name":"claude-skills-main.zip","sha256":"205ad5a781408cf0d34d1c62670f2edcc600f42143cc227c1e48074995384ef9","decision":"CATALOG_REVIEW_COMPONENT_LICENSE_REVIEW"},
+        {"name":"echoskill-main.zip","sha256":"29bc4b1918785df0bea0f0fb84d1779f0033227fe1f88847db5ed1bba324747c","decision":"CATALOG_REVIEW_LICENSE_REVIEW"},
+        {"name":"termux-app-master.zip","sha256":"a8c69d0441bf0ba1e4191c5c3a0394882f7f8206f52b872b1d7fbba0b1c6931f","decision":"DUPLICATE_SOURCE_ADAPT_DESIGN_LICENSE_GATE"}
+      ]
+    }
+  }
+}
