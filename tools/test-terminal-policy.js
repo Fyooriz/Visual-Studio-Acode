@@ -26,7 +26,12 @@ assert(policy.includes('Absolute paths are not allowed'), 'absolute path guard m
 assert(policy.includes('Home-directory expansion is not allowed'), 'home expansion guard missing');
 assert(nativeTerminal.includes('TerminalPolicy.validate'), 'NativeTerminal must enforce TerminalPolicy');
 assert(nativeTerminal.includes('Executors.newFixedThreadPool(2)'), 'NativeTerminal must bound concurrent executions');
-assert(mainActivity.includes('new ProcessBuilder("/system/bin/sh", "-c", trimmed)'), 'legacy MainActivity terminal path changed; review integration before enabling it');
+assert(nativeTerminal.includes('ProcessBuilder("/system/bin/sh", "-c", requested)'), 'NativeTerminal execution owner missing expected restricted launcher');
+assert(mainActivity.includes('private NativeTerminal nativeTerminal;'), 'MainActivity must hold the single NativeTerminal owner');
+assert(mainActivity.includes('nativeTerminal = new NativeTerminal(getFilesDir())'), 'MainActivity must initialize NativeTerminal');
+assert(mainActivity.includes('nativeTerminal.run(command'), 'MainActivity must delegate terminal execution to NativeTerminal');
+assert(!mainActivity.includes('new ProcessBuilder("/system/bin/sh", "-c", trimmed)'), 'duplicate MainActivity shell execution path must be removed');
+assert(!mainActivity.includes('COMMAND_TIMEOUT_SECONDS'), 'duplicate MainActivity terminal timeout constant must be removed');
+assert(mainActivity.includes('nativeTerminal.shutdown()'), 'MainActivity must shut down NativeTerminal with lifecycle');
 
-console.log('Terminal policy validation passed: restricted command allowlist, shell-token guards, path guards, and bounded concurrency are present.');
-console.log('NOTE: MainActivity still contains a separate legacy shell path and therefore terminal remains BLOCKED until both execution paths share one owner.');
+console.log('Terminal policy validation passed: restricted command allowlist, shell-token/path guards, bounded concurrency, and single-owner integration are present.');
