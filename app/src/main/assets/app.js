@@ -13,7 +13,7 @@ const previewBody = document.querySelector('#preview-body');
 const toast = document.querySelector('#toast');
 const workspace = document.querySelector('#workspace');
 
-const STORAGE_KEY = 'vsac.workspace.v1';
+const STORAGE_KEY = 'vsac.workspace.v2';
 const state = {
   activeId: 'main.js',
   files: new Map(),
@@ -26,10 +26,12 @@ const COMMANDS = [
   ['Save File', () => saveCurrent()],
   ['Find in File', () => openFind()],
   ['Preview HTML', () => previewHtml()],
-  ['Terminal', () => showTool('Terminal', 'Terminal backend is reserved for the native execution engine.')],
-  ['Problems', () => showTool('Problems', 'Diagnostics will be populated by the unified LSP/linter engine.')],
-  ['DevTools', () => showTool('DevTools', 'Suger-derived DevTools capability is isolated behind an internal adapter.')],
-  ['AI Assistant', () => showTool('AI Assistant', 'AI provider adapters are not enabled in the offline foundation build.')]
+  ['Terminal', () => openTerminal()],
+  ['API Studio', () => openApiStudio()],
+  ['Problems', () => showTool('Problems', 'Diagnostics are connected to the unified LSP/Linter broker. Source adapters from the uploaded Ace Linters package are staged behind this boundary.')],
+  ['DevTools', () => showTool('DevTools', 'Suger-derived console, Elements, Styles, Network and debugger capabilities are isolated behind the internal DevTools adapter.')],
+  ['AI Assistant', () => showTool('AI Assistant', 'AI provider adapters and permissioned project edits are reserved for the AI Platform implementation.')],
+  ['LSP Status', () => showTool('LSP', 'The LSP broker contract is ready. Language adapters are loaded independently so one server cannot duplicate global editor state.')]
 ];
 
 function seed() {
@@ -111,10 +113,7 @@ function updatePosition() {
 
 function sync() {
   const file = state.files.get(state.activeId);
-  if (file) {
-    file.content = editor.value;
-    if (!file.dirty) dirty.textContent = 'Saved';
-  }
+  if (file) file.content = editor.value;
   renderGutter();
   updatePosition();
   persist();
@@ -162,26 +161,30 @@ function saveCurrent() {
 
 function openFind() {
   openPanel('Find');
-  command.value = '';
   command.placeholder = 'Search in current file…';
+  command.value = '';
   command.oninput = () => {
     const q = command.value;
-    const count = q ? (editor.value.match(new RegExp(escapeRegExp(q), 'g')) || []).length : 0;
+    let count = 0;
+    if (q) {
+      try { count = (editor.value.match(new RegExp(escapeRegExp(q), 'g')) || []).length; } catch (_) {}
+    }
     commandList.innerHTML = `<div class="result-row">${count} match${count === 1 ? '' : 'es'}</div>`;
   };
   commandList.innerHTML = '<div class="result-row">Type to search this file.</div>';
+  previewBody.classList.add('hidden');
+  commandList.classList.remove('hidden');
   command.focus();
 }
 
 function previewHtml() {
   const file = state.files.get(state.activeId);
-  if (!file || !/html/i.test(file.language) && !/\.html?$/i.test(file.name)) {
+  if (!file || (!/html/i.test(file.language) && !/\.html?$/i.test(file.name))) {
     showTool('Preview', 'Open an HTML file to use the local preview panel.');
     return;
   }
   openPanel('Preview');
-  command.classList.add('hidden');
-  commandList.classList.add('hidden');
+  hideCommandArea();
   previewBody.classList.remove('hidden');
   previewBody.innerHTML = '';
   const frame = document.createElement('iframe');
@@ -191,10 +194,80 @@ function previewHtml() {
   previewBody.appendChild(frame);
 }
 
-function showTool(title, message) {
-  openPanel(title);
+function openTerminal() {
+  openPanel('Terminal');
+  command.classList.remove('hidden');
+  commandList.classList.remove('hidden');
+  previewBody.classList.add('hidden');
+  command.placeholder = 'Enter a shell command…';
+  command.value = '';
+  command.oninput = null;
+  commandList.innerHTML = '<div class="terminal-note">Working directory: app-private VSAC workspace</div>';
+  const run = document.createElement('button');
+  run.textContent = 'Run command';
+  run.onclick = runTerminalCommand;
+  commandList.appendChild(run);
+  command.addEventListener('keydown', terminalEnter, { once: true });
+  command.focus();
+}
+
+function terminalEnter(event) {
+  if (event.key === 'Enter') runTerminalCommand();
+}
+
+function runTerminalCommand() {
+  const value = command.value.trim();
+  if (!value) return;
+  commandList.insertAdjacentHTML('beforeend', `<div class="terminal-command">$ ${escapeHtml(value)}</div>`);
+  command.value = '';
+  if (window.VSACNative && typeof window.VSACNative.runTerminal === 'function') {
+    window.VSACNative.runTerminal(value);
+  } else {
+    commandList.insertAdjacentHTML('beforeend', '<div class="terminal-error">Native terminal unavailable.</div>');
+  }
+}
+
+function openApiStudio() {
+  openPanel('API Studio');
+  hideCommandArea();
+  previewBody.classList.remove('hidden');
+  previewBody.innerHTML = `
+    <div class="api-form">
+      <div class="api-row"><select id="api-method"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option></select><input id="api-url" placeholder="https://example.com/api" value="https://httpbin.org/get"></div>
+      <textarea id="api-headers" placeholder="Headers, one per line: Authorization: Bearer …"></textarea>
+      <textarea id="api-body" placeholder="Request body (optional)"></textarea>
+      <button id="api-send">Send request</button>
+      <pre id="api-result" class="api-result">Response will appear here.</pre>
+    </div>`;
+  document.querySelector('#api-send').onclick = sendApiRequest;
+}
+
+function sendApiRequest() {
+  const method = document.querySelector('#api-method').value;
+  const url = document.querySelector('#api-url').value.trim();
+  const headers = document.querySelector('#api-headers').value;
+  const body = document.querySelector('#api-body').value;
+  const result = document.querySelector('#api-result');
+  if (!/^https?:\/\//i.test(url)) {
+    result.textContent = 'Only http:// and https:// URLs are allowed.';
+    return;
+  }
+  result.textContent = 'Sending…';
+  if (window.VSACNative && typeof window.VSACNative.httpRequest === 'function') {
+    window.VSACNative.httpRequest(method, url, headers, body);
+  } else {
+    result.textContent = 'Native API service unavailable.';
+  }
+}
+
+function hideCommandArea() {
   command.classList.add('hidden');
   commandList.classList.add('hidden');
+}
+
+function showTool(title, message) {
+  openPanel(title);
+  hideCommandArea();
   previewBody.classList.remove('hidden');
   previewBody.textContent = message;
 }
@@ -242,19 +315,24 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function escapeHtml(value) {
+  const div = document.createElement('div');
+  div.textContent = value;
+  return div.innerHTML;
+}
+
 window.VSAC = {
   nativeOpenResult(name, content) {
     let id = name || 'untitled.txt';
-    let base = id;
+    const base = id;
     let n = 1;
     while (state.files.has(id)) id = `${base}.${n++}`;
     const ext = id.includes('.') ? id.split('.').pop().toLowerCase() : '';
-    const lang = ({ js: 'JavaScript', ts: 'TypeScript', html: 'HTML', htm: 'HTML', css: 'CSS', json: 'JSON', md: 'Markdown', py: 'Python', java: 'Java', kt: 'Kotlin', go: 'Go', rs: 'Rust', php: 'PHP', c: 'C', cpp: 'C++', h: 'C/C++' })[ext] || 'Plain Text';
+    const lang = ({ js: 'JavaScript', mjs: 'JavaScript', cjs: 'JavaScript', ts: 'TypeScript', html: 'HTML', htm: 'HTML', css: 'CSS', json: 'JSON', md: 'Markdown', py: 'Python', java: 'Java', kt: 'Kotlin', go: 'Go', rs: 'Rust', php: 'PHP', c: 'C', cpp: 'C++', h: 'C/C++', cs: 'C#', dart: 'Dart', lua: 'Lua', yaml: 'YAML', yml: 'YAML', tf: 'Terraform', sql: 'SQL' })[ext] || 'Plain Text';
     addFile(id, lang, content || '');
     activate(id);
     closePanel();
     showToast(`Opened ${id}`);
-    persist();
   },
   nativeOpenError(message) { showToast(message || 'Open failed'); },
   nativeSaveResult(message, ok) {
@@ -266,6 +344,26 @@ window.VSAC = {
       persist();
     }
     showToast(message || (ok ? 'Saved' : 'Save failed'));
+  },
+  nativeTerminalResult(exitCode, output) {
+    if (state.panelMode !== 'Terminal') openPanel('Terminal');
+    command.classList.remove('hidden');
+    commandList.classList.remove('hidden');
+    previewBody.classList.add('hidden');
+    commandList.insertAdjacentHTML('beforeend', `<pre class="terminal-output">${escapeHtml(output || '(no output)')}</pre><div class="terminal-exit">exit ${exitCode}</div>`);
+  },
+  nativeTerminalError(message) {
+    commandList.insertAdjacentHTML('beforeend', `<div class="terminal-error">${escapeHtml(message || 'Terminal failed')}</div>`);
+  },
+  nativeApiResult(status, headers, body, redirect) {
+    const result = document.querySelector('#api-result');
+    if (!result) return;
+    const response = [`HTTP ${status}`, redirect ? `Redirect: ${redirect}` : '', headers ? `\n${headers}` : '', `\n${body || ''}`].filter(Boolean).join('\n');
+    result.textContent = response;
+  },
+  nativeApiError(message) {
+    const result = document.querySelector('#api-result');
+    if (result) result.textContent = `ERROR: ${message || 'API request failed'}`;
   }
 };
 
@@ -275,7 +373,6 @@ editor.addEventListener('keyup', updatePosition);
 editor.addEventListener('select', updatePosition);
 editor.addEventListener('scroll', () => { gutter.scrollTop = editor.scrollTop; });
 
-// Practical mobile editor shortcuts.
 editor.addEventListener('keydown', (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
     event.preventDefault();
