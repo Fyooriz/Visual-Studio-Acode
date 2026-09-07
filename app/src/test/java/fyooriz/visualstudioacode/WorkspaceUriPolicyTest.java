@@ -4,6 +4,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.fyooriz.visualstudioacode.WorkspaceUriPolicy;
+
 import org.junit.Test;
 
 public class WorkspaceUriPolicyTest {
