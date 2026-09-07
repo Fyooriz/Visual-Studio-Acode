@@ -65,9 +65,11 @@
   });
 
   function languageBucket(language) {
-    const value = String(language || '').toLowerCase();
-    if (value.includes('typescript') || value.includes('tsx')) return 'tsx';
-    if (value.includes('jsx') || value.includes('react')) return 'jsx';
+    const value = String(language || '').toLowerCase().trim();
+    if (value === 'javascript' || value === 'js') return 'javascript';
+    if (value === 'jsx' || value.includes('react')) return 'jsx';
+    if (value === 'tsx') return 'tsx';
+    if (value === 'typescript' || value === 'ts') return null;
     if (value.includes('python')) return 'python';
     if (value === 'kotlin' || value.includes('kotlin script')) return 'kotlin';
     if (value === 'java') return 'java';
