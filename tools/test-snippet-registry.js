@@ -22,7 +22,7 @@ assert.equal(snippets.get('clg', 'TypeScript'), null);
 assert.equal(snippets.get('clg', 'ts'), null);
 assert.equal(snippets.get('clg', 'Scala'), null);
 assert.equal(snippets.get('clg', 'Plain Text'), null);
-assert.deepEqual(snippets.list('Plain Text'), []);
-assert.deepEqual(snippets.list('Julia', 'clg'), []);
+assert.equal(snippets.list('Plain Text').length, 0);
+assert.equal(snippets.list('Julia', 'clg').length, 0);
 
 console.log('Snippet registry checks passed.');
