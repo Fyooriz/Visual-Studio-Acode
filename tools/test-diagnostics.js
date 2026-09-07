@@ -41,6 +41,24 @@ const bracketErrors = diagnostics.validate({
 });
 assert.ok(bracketErrors.some((item) => item.message === "Unmatched ']'"));
 
+assert.deepEqual(diagnostics.validate({
+  uri: 'untitled://brackets-in-string',
+  language: 'JavaScript',
+  content: "const value = 'not a ) bracket';\nconst template = `not a } bracket`;"
+}), []);
+
+assert.deepEqual(diagnostics.validate({
+  uri: 'untitled://brackets-in-comments',
+  language: 'JavaScript',
+  content: '// fake } bracket\n/* fake ] bracket */\nconst value = { ok: true };'
+}), []);
+
+assert.deepEqual(diagnostics.validate({
+  uri: 'untitled://sql-comment',
+  language: 'SQL',
+  content: 'SELECT 1 -- fake ) bracket\nFROM dual;'
+}), []);
+
 const providerId = 'test-provider';
 const unregister = diagnostics.register({
   id: providerId,
