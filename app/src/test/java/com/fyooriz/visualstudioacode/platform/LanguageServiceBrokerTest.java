@@ -2,10 +2,12 @@ package com.fyooriz.visualstudioacode.platform;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -52,6 +54,35 @@ public final class LanguageServiceBrokerTest {
         response.complete(List.of());
 
         assertTrue(request.get(1, TimeUnit.SECONDS).isEmpty());
+        assertEquals(0, broker.inFlightCount());
+        broker.close();
+    }
+
+    @Test
+    public void supportsConcurrentRequestsFromSameLanguageService() throws Exception {
+        LanguageServiceBroker broker = new LanguageServiceBroker(1, 1000);
+        List<CompletableFuture<List<EngineContracts.Diagnostic>>> responses = new ArrayList<>();
+        AtomicInteger calls = new AtomicInteger();
+        broker.register("python", document -> {
+            calls.incrementAndGet();
+            CompletableFuture<List<EngineContracts.Diagnostic>> response = new CompletableFuture<>();
+            responses.add(response);
+            return response;
+        });
+
+        CompletableFuture<List<EngineContracts.Diagnostic>> first = broker.diagnostics("python", DOC);
+        CompletableFuture<List<EngineContracts.Diagnostic>> second = broker.diagnostics("python", DOC);
+
+        assertEquals(2, calls.get());
+        assertEquals(2, broker.inFlightCount());
+
+        responses.get(0).complete(List.of());
+        assertTrue(first.get(1, TimeUnit.SECONDS).isEmpty());
+        assertEquals(1, broker.inFlightCount());
+        assertFalse(second.isDone());
+
+        responses.get(1).complete(List.of());
+        assertTrue(second.get(1, TimeUnit.SECONDS).isEmpty());
         assertEquals(0, broker.inFlightCount());
         broker.close();
     }
