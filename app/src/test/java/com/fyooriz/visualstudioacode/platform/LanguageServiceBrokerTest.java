@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -66,6 +67,31 @@ public final class LanguageServiceBrokerTest {
         assertTrue(response.isCancelled());
         assertEquals(0, broker.inFlightCount());
         assertFalse(broker.cancel("python"));
+        broker.close();
+    }
+
+    @Test
+    public void timeoutCancelsUnderlyingRequestAndClearsTracking() throws Exception {
+        LanguageServiceBroker broker = new LanguageServiceBroker(1, 25);
+        CompletableFuture<List<EngineContracts.Diagnostic>> response = new CompletableFuture<>();
+        broker.register("python", document -> response);
+
+        CompletableFuture<List<EngineContracts.Diagnostic>> request = broker.diagnostics("python", DOC);
+
+        boolean timedOut = false;
+        try {
+            request.get(1, TimeUnit.SECONDS);
+        } catch (Exception error) {
+            timedOut = error.getCause() instanceof TimeoutException || error instanceof TimeoutException;
+        }
+        assertTrue(timedOut);
+
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(1);
+        while (broker.inFlightCount() != 0 && System.nanoTime() < deadline) {
+            Thread.sleep(5);
+        }
+        assertEquals(0, broker.inFlightCount());
+        assertTrue(response.isCancelled());
         broker.close();
     }
 
