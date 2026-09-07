@@ -82,6 +82,13 @@ public final class LanguageServiceBroker implements AutoCloseable {
             }
         });
 
+        tracked.whenComplete((ignored, error) -> {
+            if (tracked.isCancelled()) {
+                request.cancel(true);
+                inFlight.remove(serviceId, tracked);
+            }
+        });
+
         tracked.orTimeout(requestTimeoutMillis, TimeUnit.MILLISECONDS)
             .whenComplete((ignored, error) -> {
                 if (error != null && tracked.isCompletedExceptionally()) {
