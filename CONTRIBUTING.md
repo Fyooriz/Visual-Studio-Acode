@@ -35,7 +35,7 @@ Each capability has one internal owner and a stable contract. Providers and adap
 5. Add or update unit tests and at least one real subsystem-boundary integration test when applicable.
 6. Add failure-path coverage for filesystem, Git, terminal, or other stateful boundaries when applicable.
 7. Run governance, security-contract, language/runtime, and feature-specific checks, then the Android JVM tests and debug build.
-8. Verify runtime behavior on an Android device/emulator before claiming runtime verification.
+8. **Android runtime verification** is required before any runtime verification claim: verify the built app on an Android device or emulator and record the observed behavior.
 9. Update `FEATURE-REGISTRY.md`, `feature-registry.json`, architecture/security docs, and ADRs when the change affects those contracts.
 10. Report successful work, failed work, unfinished work, blockers, assumptions, and evidence explicitly.
 
