@@ -46,6 +46,7 @@ public final class WorkspaceBridge implements EngineContracts.WorkspaceFileSyste
 
     public JSONArray list(String treeUriString, String parentUriString) throws Exception {
         Uri treeUri = resolveTreeUri(treeUriString);
+        setWorkspaceTreeUri(treeUri.toString());
         if (parentUriString != null && !parentUriString.isBlank()) {
             WorkspaceUriPolicy.requireWithinWorkspace(treeUri.toString(), parentUriString);
         }
