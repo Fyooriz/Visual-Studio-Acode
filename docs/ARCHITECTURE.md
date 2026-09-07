@@ -93,6 +93,12 @@ RemoteFileSystem
 
 The first implementation may be simple. The contract is what prevents future feature additions from recreating the observed Acode runtime conflicts.
 
+### Language service lifecycle
+
+`LanguageServiceBroker` is owned by `LanguagePlatform`. It does not bundle or launch a language server process; adapters remain responsible for their transport/runtime. The broker provides the shared lifecycle boundary: unique provider registration, a configurable maximum number of active providers, in-flight request tracking, per-request timeout enforcement, explicit cancellation, provider unregister, and shutdown cancellation.
+
+This keeps resource policy in one owner and prevents each language adapter from inventing a separate process/request lifecycle. A provider without a reviewed runtime is not activated merely because it is listed in `LanguageCatalog`.
+
 ### Terminal contract
 
 `TerminalBackend` currently defines a one-shot command execution boundary returning a structured `TerminalResult`. This matches the native terminal implementation available on Android today: validated argv, explicit private workspace, bounded concurrency, timeout enforcement, and output limits.
