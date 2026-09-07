@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * LanguagePlatform-owned lifecycle broker for language-service adapters.
@@ -18,7 +19,8 @@ public final class LanguageServiceBroker implements AutoCloseable {
     private final int maxActiveServices;
     private final long requestTimeoutMillis;
     private final Map<String, EngineContracts.LanguageService> services = new ConcurrentHashMap<>();
-    private final Map<String, CompletableFuture<?>> inFlight = new ConcurrentHashMap<>();
+    private final Map<Long, TrackedRequest> inFlight = new ConcurrentHashMap<>();
+    private final AtomicLong requestIds = new AtomicLong();
 
     public LanguageServiceBroker(int maxActiveServices, long requestTimeoutMillis) {
         if (maxActiveServices < 1) throw new IllegalArgumentException("maxActiveServices must be >= 1");
@@ -70,40 +72,46 @@ public final class LanguageServiceBroker implements AutoCloseable {
             return CompletableFuture.failedFuture(error);
         }
 
-        CompletableFuture<List<EngineContracts.Diagnostic>> tracked = new CompletableFuture<>();
-        inFlight.put(serviceId, tracked);
+        long requestId = requestIds.incrementAndGet();
+        TrackedRequest trackedRequest = new TrackedRequest(requestId, serviceId, request);
+        inFlight.put(requestId, trackedRequest);
 
         request.whenComplete((value, error) -> {
-            inFlight.remove(serviceId, tracked);
+            inFlight.remove(requestId, trackedRequest);
             if (error != null) {
-                tracked.completeExceptionally(error);
+                trackedRequest.future.completeExceptionally(error);
             } else {
-                tracked.complete(value);
+                trackedRequest.future.complete(value);
             }
         });
 
-        tracked.whenComplete((ignored, error) -> {
-            if (tracked.isCancelled()) {
+        trackedRequest.future.whenComplete((ignored, error) -> {
+            if (trackedRequest.future.isCancelled()) {
                 request.cancel(true);
-                inFlight.remove(serviceId, tracked);
+                inFlight.remove(requestId, trackedRequest);
             }
         });
 
-        tracked.orTimeout(requestTimeoutMillis, TimeUnit.MILLISECONDS)
+        trackedRequest.future.orTimeout(requestTimeoutMillis, TimeUnit.MILLISECONDS)
             .whenComplete((ignored, error) -> {
-                if (error != null && tracked.isCompletedExceptionally()) {
+                if (error != null && trackedRequest.future.isCompletedExceptionally()) {
                     request.cancel(true);
-                    inFlight.remove(serviceId, tracked);
+                    inFlight.remove(requestId, trackedRequest);
                 }
             });
 
-        return tracked;
+        return trackedRequest.future;
     }
 
     public boolean cancel(String serviceId) {
         requireId(serviceId);
-        CompletableFuture<?> request = inFlight.get(serviceId);
-        return request != null && request.cancel(true);
+        boolean cancelled = false;
+        for (TrackedRequest request : inFlight.values()) {
+            if (request.serviceId.equals(serviceId)) {
+                cancelled |= request.future.cancel(true);
+            }
+        }
+        return cancelled;
     }
 
     public int inFlightCount() {
@@ -112,8 +120,8 @@ public final class LanguageServiceBroker implements AutoCloseable {
 
     @Override
     public void close() {
-        for (CompletableFuture<?> request : inFlight.values()) {
-            request.cancel(true);
+        for (TrackedRequest request : inFlight.values()) {
+            request.future.cancel(true);
         }
         inFlight.clear();
         services.clear();
@@ -122,6 +130,23 @@ public final class LanguageServiceBroker implements AutoCloseable {
     private static void requireId(String serviceId) {
         if (serviceId == null || serviceId.isBlank()) {
             throw new IllegalArgumentException("serviceId must be non-blank");
+        }
+    }
+
+    private static final class TrackedRequest {
+        private final long id;
+        private final String serviceId;
+        private final CompletableFuture<List<EngineContracts.Diagnostic>> future = new CompletableFuture<>();
+        private final CompletableFuture<List<EngineContracts.Diagnostic>> underlying;
+
+        private TrackedRequest(
+            long id,
+            String serviceId,
+            CompletableFuture<List<EngineContracts.Diagnostic>> underlying
+        ) {
+            this.id = id;
+            this.serviceId = serviceId;
+            this.underlying = underlying;
         }
     }
 }
