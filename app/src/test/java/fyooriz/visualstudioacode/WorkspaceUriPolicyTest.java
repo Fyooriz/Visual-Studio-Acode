@@ -12,6 +12,23 @@ public class WorkspaceUriPolicyTest {
     private static final String TREE = "content://com.example.documents/tree/primary%3AProjects";
 
     @Test
+    public void acceptsValidTreeUri() {
+        assertTrue(WorkspaceUriPolicy.isValidTreeUri(TREE));
+    }
+
+    @Test
+    public void rejectsInvalidTreeUriShape() {
+        assertFalse(WorkspaceUriPolicy.isValidTreeUri(
+                "content://com.example.documents/document/primary%3AProjects"));
+        assertFalse(WorkspaceUriPolicy.isValidTreeUri(
+                "content://com.example.documents/tree/"));
+        assertFalse(WorkspaceUriPolicy.isValidTreeUri(
+                "content://com.example.documents/tree/primary%3AProjects?query=1"));
+        assertFalse(WorkspaceUriPolicy.isValidTreeUri(
+                "file:///primary/Projects/tree/primary%3AProjects"));
+    }
+
+    @Test
     public void acceptsTreeAndDescendantUris() {
         assertTrue(WorkspaceUriPolicy.isWithinWorkspace(TREE, TREE));
         assertTrue(WorkspaceUriPolicy.isWithinWorkspace(
@@ -44,6 +61,7 @@ public class WorkspaceUriPolicyTest {
         assertFalse(WorkspaceUriPolicy.isWithinWorkspace("", TREE));
         assertFalse(WorkspaceUriPolicy.isWithinWorkspace(TREE, ""));
         assertFalse(WorkspaceUriPolicy.isWithinWorkspace(TREE, "not a uri"));
+        assertFalse(WorkspaceUriPolicy.isValidTreeUri("not a uri"));
     }
 
     @Test
