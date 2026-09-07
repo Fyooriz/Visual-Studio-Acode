@@ -69,9 +69,28 @@ public final class LanguageServiceBroker implements AutoCloseable {
         } catch (RuntimeException error) {
             return CompletableFuture.failedFuture(error);
         }
-        inFlight.put(serviceId, request);
-        request.whenComplete((ignored, ignoredError) -> inFlight.remove(serviceId, request));
-        return request.orTimeout(requestTimeoutMillis, TimeUnit.MILLISECONDS);
+
+        CompletableFuture<List<EngineContracts.Diagnostic>> tracked = new CompletableFuture<>();
+        inFlight.put(serviceId, tracked);
+
+        request.whenComplete((value, error) -> {
+            inFlight.remove(serviceId, tracked);
+            if (error != null) {
+                tracked.completeExceptionally(error);
+            } else {
+                tracked.complete(value);
+            }
+        });
+
+        tracked.orTimeout(requestTimeoutMillis, TimeUnit.MILLISECONDS)
+            .whenComplete((ignored, error) -> {
+                if (error != null && tracked.isCompletedExceptionally()) {
+                    request.cancel(true);
+                    inFlight.remove(serviceId, tracked);
+                }
+            });
+
+        return tracked;
     }
 
     public boolean cancel(String serviceId) {
