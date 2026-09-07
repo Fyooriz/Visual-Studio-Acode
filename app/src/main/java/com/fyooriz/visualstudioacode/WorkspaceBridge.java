@@ -38,9 +38,7 @@ public final class WorkspaceBridge implements EngineContracts.WorkspaceFileSyste
             workspaceTreeUri = "";
             return;
         }
-        Uri treeUri = Uri.parse(treeUriString);
-        if (!"content".equalsIgnoreCase(treeUri.getScheme()) || treeUri.getAuthority() == null
-                || treeUri.getPath() == null || !treeUri.getPath().contains("/tree/")) {
+        if (!WorkspaceUriPolicy.isValidTreeUri(treeUriString)) {
             throw new SecurityException("Invalid workspace tree URI");
         }
         workspaceTreeUri = treeUriString;
@@ -178,19 +176,18 @@ public final class WorkspaceBridge implements EngineContracts.WorkspaceFileSyste
     }
 
     private void requireTarget(String targetUri) throws SecurityException {
+        restorePersistedWorkspaceScope();
         WorkspaceUriPolicy.requireWithinWorkspace(workspaceTreeUri, targetUri);
     }
 
     private void restorePersistedWorkspaceScope() {
+        workspaceTreeUri = "";
         String raw = context.getSharedPreferences("vsac", Context.MODE_PRIVATE)
                 .getString("workspaceTreeUri", "");
         if (raw == null || raw.isBlank()) return;
         try {
+            if (!WorkspaceUriPolicy.isValidTreeUri(raw)) return;
             Uri candidate = Uri.parse(raw);
-            if (!"content".equalsIgnoreCase(candidate.getScheme()) || candidate.getAuthority() == null
-                    || candidate.getPath() == null || !candidate.getPath().contains("/tree/")) {
-                return;
-            }
             boolean grantedRead = false;
             boolean grantedWrite = false;
             for (UriPermission permission : context.getContentResolver().getPersistedUriPermissions()) {
