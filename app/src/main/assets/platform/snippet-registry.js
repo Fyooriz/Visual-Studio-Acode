@@ -84,16 +84,21 @@
     if (value === 'sql') return 'sql';
     if (value === 'html') return 'html';
     if (value === 'css' || value === 'scss' || value === 'sass' || value === 'less') return 'css';
-    return 'javascript';
+    return null;
   }
 
   function get(prefix, language) {
-    const bucket = SNIPPETS[languageBucket(language)] || SNIPPETS.javascript;
-    return bucket[prefix] || null;
+    const bucketName = languageBucket(language);
+    if (!bucketName) return null;
+    const bucket = SNIPPETS[bucketName];
+    return bucket ? (bucket[prefix] || null) : null;
   }
 
   function list(language, query) {
-    const bucket = SNIPPETS[languageBucket(language)] || SNIPPETS.javascript;
+    const bucketName = languageBucket(language);
+    if (!bucketName) return [];
+    const bucket = SNIPPETS[bucketName];
+    if (!bucket) return [];
     const q = String(query || '').toLowerCase();
     return Object.keys(bucket).filter((key) => !q || key.toLowerCase().includes(q)).map((key) => ({ prefix: key, body: bucket[key] }));
   }
