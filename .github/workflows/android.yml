@@ -34,6 +34,8 @@ jobs:
         run: node tools/test-language-runtime.js
       - name: Validate snippet registry
         run: node tools/test-snippet-registry.js
+      - name: Validate diagnostics provider
+        run: node tools/test-diagnostics.js
       - name: Validate all JavaScript
         shell: bash
         run: |
