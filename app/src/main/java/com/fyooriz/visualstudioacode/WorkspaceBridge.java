@@ -25,13 +25,30 @@ public final class WorkspaceBridge implements EngineContracts.WorkspaceFileSyste
     public static final int MAX_TEXT_BYTES = 4 * 1024 * 1024;
 
     private final Context context;
+    private volatile String workspaceTreeUri = "";
 
     public WorkspaceBridge(Context context) {
         this.context = context.getApplicationContext();
     }
 
+    public void setWorkspaceTreeUri(String treeUriString) throws SecurityException {
+        if (treeUriString == null || treeUriString.isBlank()) {
+            workspaceTreeUri = "";
+            return;
+        }
+        Uri treeUri = Uri.parse(treeUriString);
+        if (!"content".equalsIgnoreCase(treeUri.getScheme()) || treeUri.getAuthority() == null
+                || treeUri.getPath() == null || !treeUri.getPath().contains("/tree/")) {
+            throw new SecurityException("Invalid workspace tree URI");
+        }
+        workspaceTreeUri = treeUriString;
+    }
+
     public JSONArray list(String treeUriString, String parentUriString) throws Exception {
         Uri treeUri = resolveTreeUri(treeUriString);
+        if (parentUriString != null && !parentUriString.isBlank()) {
+            WorkspaceUriPolicy.requireWithinWorkspace(treeUri.toString(), parentUriString);
+        }
         String parentDocumentId = parentUriString == null || parentUriString.isBlank()
                 ? DocumentsContract.getTreeDocumentId(treeUri)
                 : DocumentsContract.getDocumentId(Uri.parse(parentUriString));
@@ -75,6 +92,7 @@ public final class WorkspaceBridge implements EngineContracts.WorkspaceFileSyste
     }
 
     public String read(String uriString) throws Exception {
+        requireTarget(uriString);
         Uri uri = Uri.parse(uriString);
         try (InputStream input = context.getContentResolver().openInputStream(uri)) {
             if (input == null) throw new IOException("Unable to open workspace file");
@@ -89,6 +107,7 @@ public final class WorkspaceBridge implements EngineContracts.WorkspaceFileSyste
     }
 
     public void write(String uriString, String content) throws Exception {
+        requireTarget(uriString);
         byte[] bytes = (content == null ? "" : content).getBytes(StandardCharsets.UTF_8);
         if (bytes.length > MAX_TEXT_BYTES) throw new IOException("Workspace file exceeds 4 MiB limit");
         Uri uri = Uri.parse(uriString);
@@ -103,16 +122,18 @@ public final class WorkspaceBridge implements EngineContracts.WorkspaceFileSyste
     public void create(String parentUriString, String displayName, String content) throws Exception {
         if (parentUriString == null || parentUriString.isBlank()) throw new IOException("No workspace parent selected");
         if (displayName == null || displayName.isBlank()) throw new IOException("Display name is required");
+        requireTarget(parentUriString);
         Uri parentUri = Uri.parse(parentUriString);
         Uri created = DocumentsContract.createDocument(
                 context.getContentResolver(), parentUri, "text/plain", displayName);
         if (created == null) throw new IOException("Unable to create workspace file");
+        requireTarget(created.toString());
         write(created.toString(), content);
     }
 
     @Override
     public void delete(String uriString) throws Exception {
-        if (uriString == null || uriString.isBlank()) throw new IOException("Workspace file URI is required");
+        requireTarget(uriString);
         if (!DocumentsContract.deleteDocument(context.getContentResolver(), Uri.parse(uriString))) {
             throw new IOException("Unable to delete workspace file");
         }
@@ -153,6 +174,10 @@ public final class WorkspaceBridge implements EngineContracts.WorkspaceFileSyste
                 || lower.equals("build") || lower.equals("workspace") || lower.endsWith(".gitignore");
     }
 
+    private void requireTarget(String targetUri) throws SecurityException {
+        WorkspaceUriPolicy.requireWithinWorkspace(workspaceTreeUri, targetUri);
+    }
+
     private Uri resolveTreeUri(String treeUriString) throws IOException {
         if (treeUriString != null && !treeUriString.isBlank()) return Uri.parse(treeUriString);
         throw new IOException("No workspace folder selected");
@@ -164,12 +189,9 @@ public final class WorkspaceBridge implements EngineContracts.WorkspaceFileSyste
         int total = 0;
         int count;
         while ((count = input.read(buffer)) != -1) {
-            int allowed = Math.min(count, maxBytes - total);
-            if (allowed > 0) {
-                out.write(buffer, 0, allowed);
-                total += allowed;
-            }
-            if (total >= maxBytes) throw new IOException("Workspace file exceeds 4 MiB limit");
+            if (count > maxBytes - total) throw new IOException("Workspace file exceeds 4 MiB limit");
+            out.write(buffer, 0, count);
+            total += count;
         }
         return out.toByteArray();
     }
