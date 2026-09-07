@@ -13,15 +13,29 @@ public final class WorkspaceUriPolicy {
         }
     }
 
+    public static boolean isValidTreeUri(String workspaceTreeUri) {
+        if (workspaceTreeUri == null || workspaceTreeUri.isBlank()) return false;
+        try {
+            URI tree = new URI(workspaceTreeUri);
+            if (!"content".equalsIgnoreCase(tree.getScheme())) return false;
+            if (tree.getRawAuthority() == null || tree.getRawAuthority().isBlank()) return false;
+            if (tree.getRawQuery() != null || tree.getRawFragment() != null) return false;
+            String treePath = tree.getRawPath();
+            if (treePath == null || !treePath.startsWith("/tree/")) return false;
+            return treePath.length() > "/tree/".length();
+        } catch (URISyntaxException ignored) {
+            return false;
+        }
+    }
+
     public static boolean isWithinWorkspace(String workspaceTreeUri, String targetUri) {
-        if (workspaceTreeUri == null || workspaceTreeUri.isBlank()
+        if (!isValidTreeUri(workspaceTreeUri)
                 || targetUri == null || targetUri.isBlank()) return false;
         try {
             URI tree = new URI(workspaceTreeUri);
             URI target = new URI(targetUri);
-            if (!"content".equalsIgnoreCase(tree.getScheme())
-                    || !"content".equalsIgnoreCase(target.getScheme())) return false;
-            if (tree.getRawAuthority() == null || !tree.getRawAuthority().equals(target.getRawAuthority())) return false;
+            if (!"content".equalsIgnoreCase(target.getScheme())) return false;
+            if (target.getRawAuthority() == null || !tree.getRawAuthority().equals(target.getRawAuthority())) return false;
             String treePath = tree.getRawPath();
             String targetPath = target.getRawPath();
             if (treePath == null || targetPath == null) return false;
