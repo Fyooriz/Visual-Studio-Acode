@@ -1,6 +1,7 @@
 package com.fyooriz.visualstudioacode;
 
 import android.content.Context;
+import android.content.UriPermission;
 import android.net.Uri;
 import android.provider.DocumentsContract;
 import android.provider.OpenableColumns;
@@ -29,6 +30,7 @@ public final class WorkspaceBridge implements EngineContracts.WorkspaceFileSyste
 
     public WorkspaceBridge(Context context) {
         this.context = context.getApplicationContext();
+        restorePersistedWorkspaceScope();
     }
 
     public void setWorkspaceTreeUri(String treeUriString) throws SecurityException {
@@ -177,6 +179,29 @@ public final class WorkspaceBridge implements EngineContracts.WorkspaceFileSyste
 
     private void requireTarget(String targetUri) throws SecurityException {
         WorkspaceUriPolicy.requireWithinWorkspace(workspaceTreeUri, targetUri);
+    }
+
+    private void restorePersistedWorkspaceScope() {
+        String raw = context.getSharedPreferences("vsac", Context.MODE_PRIVATE)
+                .getString("workspaceTreeUri", "");
+        if (raw == null || raw.isBlank()) return;
+        try {
+            Uri candidate = Uri.parse(raw);
+            if (!"content".equalsIgnoreCase(candidate.getScheme()) || candidate.getAuthority() == null
+                    || candidate.getPath() == null || !candidate.getPath().contains("/tree/")) {
+                return;
+            }
+            boolean grantedRead = false;
+            boolean grantedWrite = false;
+            for (UriPermission permission : context.getContentResolver().getPersistedUriPermissions()) {
+                if (candidate.equals(permission.getUri())) {
+                    grantedRead = permission.isReadPermission();
+                    grantedWrite = permission.isWritePermission();
+                    break;
+                }
+            }
+            if (grantedRead && grantedWrite) workspaceTreeUri = candidate.toString();
+        } catch (Exception ignored) { }
     }
 
     private Uri resolveTreeUri(String treeUriString) throws IOException {
