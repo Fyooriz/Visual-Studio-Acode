@@ -13,13 +13,15 @@ vm.runInNewContext(source, context, { filename: sourcePath });
 const diagnostics = context.window.VSACDiagnostics;
 assert.ok(diagnostics, 'VSACDiagnostics provider must initialize');
 
-const plainValue = (value) => JSON.parse(JSON.stringify(value));
+const sameJson = (actual, expected, message) => {
+  assert.equal(JSON.stringify(actual), JSON.stringify(expected), message);
+};
 
-assert.deepEqual(plainValue(diagnostics.validate({
+sameJson(diagnostics.validate({
   uri: 'untitled://valid-json',
   language: 'JSON',
   content: '{"ok":true}'
-})), []);
+}), []);
 
 const jsonErrors = diagnostics.validate({
   uri: 'untitled://invalid-json',
@@ -31,10 +33,10 @@ assert.equal(jsonErrors[0].severity, 'error');
 assert.match(jsonErrors[0].message, /^Invalid JSON:/);
 assert.equal(jsonErrors[0].line, 2);
 assert.ok(jsonErrors[0].column >= 1);
-assert.deepEqual(plainValue(diagnostics.list('untitled://invalid-json')), plainValue(jsonErrors));
+sameJson(diagnostics.list('untitled://invalid-json'), jsonErrors);
 
 diagnostics.clear('untitled://invalid-json');
-assert.deepEqual(plainValue(diagnostics.list('untitled://invalid-json')), []);
+sameJson(diagnostics.list('untitled://invalid-json'), []);
 
 const bracketErrors = diagnostics.validate({
   uri: 'untitled://broken-js',
@@ -43,23 +45,23 @@ const bracketErrors = diagnostics.validate({
 });
 assert.ok(bracketErrors.some((item) => item.message === "Unmatched ']'"));
 
-assert.deepEqual(plainValue(diagnostics.validate({
+sameJson(diagnostics.validate({
   uri: 'untitled://brackets-in-string',
   language: 'JavaScript',
   content: "const value = 'not a ) bracket';\nconst template = `not a } bracket`;"
-})), []);
+}), []);
 
-assert.deepEqual(plainValue(diagnostics.validate({
+sameJson(diagnostics.validate({
   uri: 'untitled://brackets-in-comments',
   language: 'JavaScript',
   content: '// fake } bracket\n/* fake ] bracket */\nconst value = { ok: true };'
-})), []);
+}), []);
 
-assert.deepEqual(plainValue(diagnostics.validate({
+sameJson(diagnostics.validate({
   uri: 'untitled://sql-comment',
   language: 'SQL',
   content: 'SELECT 1 -- fake ) bracket\nFROM dual;'
-})), []);
+}), []);
 
 const providerId = 'test-provider';
 const unregister = diagnostics.register({
@@ -74,7 +76,7 @@ const custom = diagnostics.validate({
   language: 'Plain Text',
   content: 'text'
 });
-assert.deepEqual(plainValue(custom), [{
+sameJson(custom, [{
   source: providerId,
   severity: 'info',
   message: 'custom diagnostic',
@@ -96,7 +98,7 @@ const failure = diagnostics.validate({
   language: 'Plain Text',
   content: 'text'
 });
-assert.deepEqual(plainValue(failure), [{
+sameJson(failure, [{
   source: throwingId,
   severity: 'error',
   message: 'Diagnostic provider failed: synthetic provider failure',
