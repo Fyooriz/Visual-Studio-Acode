@@ -81,4 +81,26 @@ assert.deepEqual(custom, [{
 }]);
 unregister();
 
+const throwingId = 'throwing-provider';
+const unregisterThrowing = diagnostics.register({
+  id: throwingId,
+  languages: ['Plain Text'],
+  validate() {
+    throw new Error('synthetic provider failure');
+  }
+});
+const failure = diagnostics.validate({
+  uri: 'untitled://provider-failure',
+  language: 'Plain Text',
+  content: 'text'
+});
+assert.deepEqual(failure, [{
+  source: throwingId,
+  severity: 'error',
+  message: 'Diagnostic provider failed: synthetic provider failure',
+  line: 1,
+  column: 1
+}]);
+unregisterThrowing();
+
 console.log('Diagnostics checks passed.');
