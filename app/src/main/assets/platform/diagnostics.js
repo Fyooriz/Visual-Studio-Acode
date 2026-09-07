@@ -89,10 +89,69 @@
       const items = [];
       let line = 1;
       let column = 0;
+      let quote = null;
+      let escaped = false;
+      let lineComment = false;
+      let blockComment = false;
+
       for (let i = 0; i < content.length; i++) {
         const ch = content[i];
-        if (ch === '\n') { line++; column = 0; continue; }
+        const next = content[i + 1];
+
+        if (ch === '\n') {
+          line++;
+          column = 0;
+          lineComment = false;
+          escaped = false;
+          continue;
+        }
+
         column++;
+
+        if (lineComment) continue;
+
+        if (blockComment) {
+          if (ch === '*' && next === '/') {
+            blockComment = false;
+            i++;
+            column++;
+          }
+          continue;
+        }
+
+        if (quote) {
+          if (escaped) {
+            escaped = false;
+          } else if (ch === '\\') {
+            escaped = true;
+          } else if (ch === quote) {
+            quote = null;
+          }
+          continue;
+        }
+
+        if ((ch === '/' && next === '/') || (ch === '-' && next === '-' && (modeIsSql(mode)))) {
+          lineComment = true;
+          if (ch === '-') {
+            i++;
+            column++;
+          }
+          continue;
+        }
+
+        if (ch === '/' && next === '*') {
+          blockComment = true;
+          i++;
+          column++;
+          continue;
+        }
+
+        if (ch === '"' || ch === '\'' || ch === '`') {
+          quote = ch;
+          escaped = false;
+          continue;
+        }
+
         if (opens.has(ch)) stack.push({ ch, line, column });
         else if (pairs[ch]) {
           const last = stack.pop();
@@ -101,12 +160,17 @@
           }
         }
       }
+
       for (let i = stack.length - 1; i >= 0; i--) {
         items.push({ severity: 'warning', message: `Unclosed '${stack[i].ch}'`, line: stack[i].line, column: stack[i].column });
       }
       return items;
     }
   });
+
+  function modeIsSql(mode) {
+    return String(mode || '').toLowerCase() === 'sql';
+  }
 
   global.VSACDiagnostics = Object.freeze({ register, validate, list, clear });
 })(window);
