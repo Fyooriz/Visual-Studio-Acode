@@ -71,6 +71,19 @@ public final class LanguageServiceBrokerTest {
     }
 
     @Test
+    public void callerCancellationCancelsUnderlyingRequest() {
+        LanguageServiceBroker broker = new LanguageServiceBroker(1, 1000);
+        CompletableFuture<List<EngineContracts.Diagnostic>> response = new CompletableFuture<>();
+        broker.register("python", document -> response);
+
+        CompletableFuture<List<EngineContracts.Diagnostic>> request = broker.diagnostics("python", DOC);
+        assertTrue(request.cancel(true));
+        assertTrue(response.isCancelled());
+        assertEquals(0, broker.inFlightCount());
+        broker.close();
+    }
+
+    @Test
     public void timeoutCancelsUnderlyingRequestAndClearsTracking() throws Exception {
         LanguageServiceBroker broker = new LanguageServiceBroker(1, 25);
         CompletableFuture<List<EngineContracts.Diagnostic>> response = new CompletableFuture<>();
