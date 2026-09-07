@@ -28,32 +28,29 @@ public class WorkspaceModelTest {
     }
 
     @Test
-    public void activateSwitchesToKnownDocument() {
+    public void activateSwitchesToKnownDocumentAndRejectsUnknown() {
         WorkspaceModel model = new WorkspaceModel();
-        model.upsert(new WorkspaceModel.DocumentModel(
-                "doc-1", "Main.java", "java", "content://workspace/doc-1", false));
-        model.upsert(new WorkspaceModel.DocumentModel(
-                "doc-2", "README.md", "markdown", "content://workspace/doc-2", false));
+        WorkspaceModel.DocumentModel first = new WorkspaceModel.DocumentModel(
+                "doc-1", "Main.java", "java", "content://workspace/doc-1", false);
+        WorkspaceModel.DocumentModel second = new WorkspaceModel.DocumentModel(
+                "doc-2", "README.md", "markdown", "content://workspace/doc-2", false);
 
+        model.upsert(first);
+        model.upsert(second);
         model.activate("doc-2");
 
         assertEquals("doc-2", model.active().id());
-    }
-
-    @Test
-    public void activateRejectsUnknownDocument() {
-        WorkspaceModel model = new WorkspaceModel();
-        model.upsert(new WorkspaceModel.DocumentModel(
-                "doc-1", "Main.java", "java", "content://workspace/doc-1", false));
-
         assertThrows(IllegalArgumentException.class, () -> model.activate("missing"));
+        assertEquals("doc-2", model.active().id());
     }
 
     @Test
     public void upsertRejectsMissingDocumentId() {
         WorkspaceModel model = new WorkspaceModel();
+        assertThrows(IllegalArgumentException.class, () -> model.upsert(null));
         assertThrows(IllegalArgumentException.class, () -> model.upsert(
                 new WorkspaceModel.DocumentModel("", "file.txt", "text", "content://workspace/doc", false)));
-        assertThrows(IllegalArgumentException.class, () -> model.upsert(null));
+        assertThrows(IllegalArgumentException.class, () -> model.upsert(
+                new WorkspaceModel.DocumentModel("   ", "file.txt", "text", "content://workspace/doc", false)));
     }
 }
