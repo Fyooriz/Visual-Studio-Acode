@@ -41,6 +41,15 @@
     else localStorage.removeItem(STORAGE_KEY + '.file');
   }
 
+  function clearWorkspaceState() {
+    state.treeUri = '';
+    state.rootName = 'No workspace';
+    state.expanded.clear();
+    saveBinding('');
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY + '.name');
+  }
+
   function openPanel(title) {
     const panel = document.querySelector('#panel');
     const titleEl = document.querySelector('#panel-title');
@@ -124,6 +133,9 @@
 
   function open() {
     openPanel('Project Explorer');
+    if (!window.VSACNative?.hasWorkspace || !window.VSACNative.hasWorkspace()) {
+      if (state.treeUri) clearWorkspaceState();
+    }
     if (!state.treeUri) {
       nodes().innerHTML = `<div class="project-empty">No project folder selected.</div><button id="project-open" class="project-action">Open project folder</button>`;
       nodes().querySelector('#project-open').onclick = openWorkspace;
