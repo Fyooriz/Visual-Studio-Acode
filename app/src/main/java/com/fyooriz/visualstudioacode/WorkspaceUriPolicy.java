@@ -36,6 +36,7 @@ public final class WorkspaceUriPolicy {
             URI target = new URI(targetUri);
             if (!"content".equalsIgnoreCase(target.getScheme())) return false;
             if (target.getRawAuthority() == null || !tree.getRawAuthority().equals(target.getRawAuthority())) return false;
+            if (target.getRawQuery() != null || target.getRawFragment() != null) return false;
             String treePath = tree.getRawPath();
             String targetPath = target.getRawPath();
             if (treePath == null || targetPath == null) return false;
