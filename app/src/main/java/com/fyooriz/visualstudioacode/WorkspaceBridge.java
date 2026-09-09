@@ -1,6 +1,7 @@
 package com.fyooriz.visualstudioacode;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.UriPermission;
 import android.net.Uri;
 import android.provider.DocumentsContract;
@@ -33,20 +34,40 @@ public final class WorkspaceBridge implements EngineContracts.WorkspaceFileSyste
         restorePersistedWorkspaceScope();
     }
 
-    public void setWorkspaceTreeUri(String treeUriString) throws SecurityException {
-        if (treeUriString == null || treeUriString.isBlank()) {
-            workspaceTreeUri = "";
-            return;
-        }
-        if (!WorkspaceUriPolicy.isValidTreeUri(treeUriString)) {
+    public void adoptSelectedWorkspace(Uri treeUri) throws SecurityException {
+        if (treeUri == null || !WorkspaceUriPolicy.isValidTreeUri(treeUri.toString())) {
             throw new SecurityException("Invalid workspace tree URI");
         }
-        workspaceTreeUri = treeUriString;
+        try {
+            context.getContentResolver().takePersistableUriPermission(
+                    treeUri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        } catch (SecurityException e) {
+            workspaceTreeUri = "";
+            throw e;
+        }
+        if (!hasPersistedReadWritePermission(treeUri)) {
+            workspaceTreeUri = "";
+            throw new SecurityException("Workspace read/write permission was not persisted");
+        }
+        workspaceTreeUri = treeUri.toString();
+        context.getSharedPreferences("vsac", Context.MODE_PRIVATE)
+                .edit()
+                .putString("workspaceTreeUri", workspaceTreeUri)
+                .apply();
+    }
+
+    public String workspaceTreeUri() {
+        restorePersistedWorkspaceScope();
+        return workspaceTreeUri;
+    }
+
+    public boolean hasWorkspace() {
+        return !workspaceTreeUri().isBlank();
     }
 
     public JSONArray list(String treeUriString, String parentUriString) throws Exception {
-        Uri treeUri = resolveTreeUri(treeUriString);
-        setWorkspaceTreeUri(treeUri.toString());
+        Uri treeUri = requireConfiguredTreeUri(treeUriString);
         if (parentUriString != null && !parentUriString.isBlank()) {
             WorkspaceUriPolicy.requireWithinWorkspace(treeUri.toString(), parentUriString);
         }
@@ -180,6 +201,28 @@ public final class WorkspaceBridge implements EngineContracts.WorkspaceFileSyste
         WorkspaceUriPolicy.requireWithinWorkspace(workspaceTreeUri, targetUri);
     }
 
+    private Uri requireConfiguredTreeUri(String requestedTreeUri) throws SecurityException {
+        restorePersistedWorkspaceScope();
+        if (workspaceTreeUri.isBlank()) throw new SecurityException("No workspace selected");
+        if (requestedTreeUri == null || !workspaceTreeUri.equals(requestedTreeUri)) {
+            throw new SecurityException("Requested workspace does not match the selected workspace");
+        }
+        return Uri.parse(workspaceTreeUri);
+    }
+
+    private boolean hasPersistedReadWritePermission(Uri uri) {
+        boolean grantedRead = false;
+        boolean grantedWrite = false;
+        for (UriPermission permission : context.getContentResolver().getPersistedUriPermissions()) {
+            if (uri.equals(permission.getUri())) {
+                grantedRead = permission.isReadPermission();
+                grantedWrite = permission.isWritePermission();
+                break;
+            }
+        }
+        return grantedRead && grantedWrite;
+    }
+
     private void restorePersistedWorkspaceScope() {
         workspaceTreeUri = "";
         String raw = context.getSharedPreferences("vsac", Context.MODE_PRIVATE)
@@ -188,22 +231,8 @@ public final class WorkspaceBridge implements EngineContracts.WorkspaceFileSyste
         try {
             if (!WorkspaceUriPolicy.isValidTreeUri(raw)) return;
             Uri candidate = Uri.parse(raw);
-            boolean grantedRead = false;
-            boolean grantedWrite = false;
-            for (UriPermission permission : context.getContentResolver().getPersistedUriPermissions()) {
-                if (candidate.equals(permission.getUri())) {
-                    grantedRead = permission.isReadPermission();
-                    grantedWrite = permission.isWritePermission();
-                    break;
-                }
-            }
-            if (grantedRead && grantedWrite) workspaceTreeUri = candidate.toString();
+            if (hasPersistedReadWritePermission(candidate)) workspaceTreeUri = candidate.toString();
         } catch (Exception ignored) { }
-    }
-
-    private Uri resolveTreeUri(String treeUriString) throws IOException {
-        if (treeUriString != null && !treeUriString.isBlank()) return Uri.parse(treeUriString);
-        throw new IOException("No workspace folder selected");
     }
 
     private byte[] readLimited(InputStream input, int maxBytes) throws IOException {
