@@ -289,6 +289,7 @@ public final class MainActivity extends Activity {
     public final class VSACBridge {
         @JavascriptInterface public void openTextFile() { runOnUiThread(MainActivity.this::openTextFile); }
         @JavascriptInterface public void openWorkspace() { runOnUiThread(MainActivity.this::openWorkspace); }
+        @JavascriptInterface public boolean hasWorkspace() { return workspaceBridge != null && workspaceBridge.hasWorkspace(); }
         @JavascriptInterface public String workspaceList(String parentUri) {
             try { return workspaceBridge.list(workspaceBridge.workspaceTreeUri(), parentUri).toString(); }
             catch (Exception e) {
