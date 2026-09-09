@@ -13,7 +13,6 @@ import android.webkit.WebViewClient;
 
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -292,7 +291,10 @@ public final class MainActivity extends Activity {
         @JavascriptInterface public void openWorkspace() { runOnUiThread(MainActivity.this::openWorkspace); }
         @JavascriptInterface public String workspaceList(String parentUri) {
             try { return workspaceBridge.list(workspaceBridge.workspaceTreeUri(), parentUri).toString(); }
-            catch (Exception e) { return "[]"; }
+            catch (Exception e) {
+                notifyWorkspaceError(e.getMessage() == null ? "Workspace list failed" : e.getMessage());
+                return "[]";
+            }
         }
         @JavascriptInterface public void workspaceRead(String uri, String name, String mime) {
             if (!workspaceBridge.hasWorkspace() || uri == null || uri.isBlank()) { notifyWorkspaceError("No workspace selected"); return; }
