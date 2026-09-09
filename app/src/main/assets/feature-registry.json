@@ -31,7 +31,7 @@
   },
   "features": {
     "editor": {"owner":"EditorPlatform","status":"IMPLEMENTED","sources":["Acode ecosystem","Acode-main.zip","vscode-main.zip","x.treesitter","jobians.lsp.client"],"evidence":{"build":"unknown","test":"partial","runtime":"unknown","security":"partial"}},
-    "workspace": {"owner":"WorkspaceCore","status":"IMPLEMENTED","sources":["Acode ecosystem","Acode-main.zip","vscode-main.zip"],"evidence":{"build":"unknown","test":"partial","runtime":"unknown","security":"partial"}},
+    "workspace": {"owner":"WorkspaceCore","status":"IMPLEMENTED","sources":["Acode ecosystem","Acode-main.zip","vscode-main.zip"],"evidence":{"build":"pass-ci-debug-apk","test":"unit-pass","runtime":"unknown","security":"pass-contract"}},
     "lsp": {"owner":"LanguagePlatform","status":"IMPLEMENTED","sources":["ace-linters-2.3.4.zip","Acode-main.zip","vscode-main.zip","jobians.lsp.client"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
     "diagnostics": {"owner":"LanguagePlatform","status":"IMPLEMENTED","sources":["ace-linters-2.3.4.zip","vscode-main.zip"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
     "formatting": {"owner":"BuildExecutionPlatform","status":"IMPLEMENTED","sources":["acode.plugin.prettier","acode.python.fmt","Acode-main.zip","vscode-main.zip"],"evidence":{"build":"unknown","test":"partial","runtime":"unknown","security":"partial"}},
