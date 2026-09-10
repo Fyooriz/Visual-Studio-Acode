@@ -14,15 +14,10 @@ import android.webkit.WebViewClient;
 
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -30,7 +25,6 @@ public final class MainActivity extends Activity {
     private static final int REQUEST_OPEN = 4101;
     private static final int REQUEST_CREATE = 4102;
     private static final int REQUEST_WORKSPACE = 4103;
-    private static final int HTTP_TIMEOUT_MILLIS = 15000;
     private static final boolean TERMINAL_SECURITY_GATE_PASSED = false;
 
     private WebView webView;
@@ -185,12 +179,6 @@ public final class MainActivity extends Activity {
         runOnUiThread(() -> webView.evaluateJavascript(payload, null));
     }
 
-    private void notifyApiResult(int status, String headers, String body, String redirect) {
-        if (webView == null) return;
-        String payload = "window.VSAC&&window.VSAC.nativeApiResult(" + status + "," + JSONObject.quote(headers == null ? "" : headers) + "," + JSONObject.quote(body == null ? "" : body) + "," + JSONObject.quote(redirect == null ? "" : redirect) + ");";
-        runOnUiThread(() -> webView.evaluateJavascript(payload, null));
-    }
-
     private void notifyApiError(String message) {
         if (webView == null) return;
         String payload = "window.VSAC&&window.VSAC.nativeApiError(" + JSONObject.quote(message) + ");";
@@ -207,76 +195,6 @@ public final class MainActivity extends Activity {
             @Override public void onResult(int exitCode, String output) { notifyTerminalResult(exitCode, output); }
             @Override public void onError(String message) { notifyTerminalError(message); }
         });
-    }
-
-    private void httpRequest(String method, String urlString, String rawHeaders, String body) {
-        if (urlString == null || !urlString.startsWith("https://")) {
-            notifyApiError("Only HTTPS URLs are allowed by the native API boundary.");
-            return;
-        }
-        ioExecutor.execute(() -> {
-            HttpURLConnection connection = null;
-            try {
-                URL url = new URL(urlString);
-                connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod(method == null || method.isBlank() ? "GET" : method.toUpperCase());
-                connection.setConnectTimeout(HTTP_TIMEOUT_MILLIS);
-                connection.setReadTimeout(HTTP_TIMEOUT_MILLIS);
-                connection.setInstanceFollowRedirects(false);
-                connection.setUseCaches(false);
-                applyHeaders(connection, rawHeaders);
-                boolean hasBody = body != null && !body.isEmpty() && !List.of("GET", "HEAD").contains(connection.getRequestMethod());
-                if (hasBody) {
-                    if (body.getBytes(StandardCharsets.UTF_8).length > 2 * 1024 * 1024) throw new IOException("Request body exceeds 2 MiB limit");
-                    connection.setDoOutput(true);
-                    if (connection.getRequestProperty("Content-Type") == null) connection.setRequestProperty("Content-Type", "application/json");
-                    try (OutputStream out = connection.getOutputStream()) { out.write(body.getBytes(StandardCharsets.UTF_8)); }
-                }
-                int status = connection.getResponseCode();
-                String headers = flattenHeaders(connection.getHeaderFields());
-                String redirect = connection.getHeaderField("Location");
-                InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
-                String response = stream == null ? "" : readLimited(stream, 2 * 1024 * 1024);
-                notifyApiResult(status, headers, response, redirect);
-            } catch (Exception e) {
-                notifyApiError(e.getMessage() == null ? "HTTP request failed" : e.getMessage());
-            } finally {
-                if (connection != null) connection.disconnect();
-            }
-        });
-    }
-
-    private void applyHeaders(HttpURLConnection connection, String rawHeaders) {
-        if (rawHeaders == null) return;
-        for (String line : rawHeaders.split("\\r?\\n")) {
-            int colon = line.indexOf(':');
-            if (colon <= 0) continue;
-            String name = line.substring(0, colon).trim();
-            String value = line.substring(colon + 1).trim();
-            if (!name.isEmpty()) connection.setRequestProperty(name, value);
-        }
-    }
-
-    private String flattenHeaders(Map<String, List<String>> headers) {
-        StringBuilder out = new StringBuilder();
-        for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
-            if (entry.getKey() == null) continue;
-            for (String value : entry.getValue()) out.append(entry.getKey()).append(": ").append(value).append('\n');
-        }
-        return out.toString().trim();
-    }
-
-    private String readLimited(InputStream stream, int maxBytes) throws IOException {
-        byte[] buffer = new byte[8192];
-        int total = 0;
-        StringBuilder out = new StringBuilder();
-        int count;
-        while ((count = stream.read(buffer)) != -1) {
-            int allowed = Math.min(count, maxBytes - total);
-            if (allowed > 0) { out.append(new String(buffer, 0, allowed, StandardCharsets.UTF_8)); total += allowed; }
-            if (total >= maxBytes) { out.append("\n[output truncated]"); break; }
-        }
-        return out.toString();
     }
 
     @Override
@@ -314,6 +232,19 @@ public final class MainActivity extends Activity {
         });
     }
 
+    private String readLimited(InputStream stream, int maxBytes) throws IOException {
+        byte[] buffer = new byte[8192];
+        int total = 0;
+        StringBuilder out = new StringBuilder();
+        int count;
+        while ((count = stream.read(buffer)) != -1) {
+            int allowed = Math.min(count, maxBytes - total);
+            if (allowed > 0) { out.append(new String(buffer, 0, allowed, StandardCharsets.UTF_8)); total += allowed; }
+            if (total >= maxBytes) { out.append("\n[output truncated]"); break; }
+        }
+        return out.toString();
+    }
+
     public final class VSACBridge {
         @JavascriptInterface public void openTextFile() { runOnUiThread(MainActivity.this::openTextFile); }
         @JavascriptInterface public void openWorkspace() { runOnUiThread(MainActivity.this::openWorkspace); }
@@ -339,7 +270,9 @@ public final class MainActivity extends Activity {
         @JavascriptInterface public void saveTextFile(String content, String suggestedName) { runOnUiThread(() -> { if (currentDocumentUri != null) saveToUri(currentDocumentUri, content); else createTextFile(suggestedName, content); }); }
         @JavascriptInterface public void newTextFile() { runOnUiThread(() -> notifyOpenResult("untitled.txt", "")); }
         @JavascriptInterface public void runTerminal(String command) { runOnUiThread(() -> MainActivity.this.runTerminal(command)); }
-        @JavascriptInterface public void httpRequest(String method, String url, String headers, String body) { runOnUiThread(() -> MainActivity.this.httpRequest(method, url, headers, body)); }
+        @JavascriptInterface public void httpRequest(String method, String url, String headers, String body) {
+            notifyApiError("Native API network capability is disabled until provider-scoped networking is implemented.");
+        }
         @JavascriptInterface public String getAppVersion() { return "0.4.0"; }
     }
 
