@@ -19,7 +19,6 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: '22'
-          cache: npm
       - name: Install E2E dependencies
         run: npm install --no-audit --no-fund
       - name: Install Playwright Chromium
