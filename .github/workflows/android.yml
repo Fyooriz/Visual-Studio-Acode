@@ -10,7 +10,38 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  web-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Set up Node 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install E2E dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run Playwright E2E
+        run: npm run test:e2e:ci
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-report
+          path: playwright-report
+          if-no-files-found: ignore
+      - name: Upload Playwright test output
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-test-results
+          path: test-results
+          if-no-files-found: ignore
+
+  android-unit-and-instrumented:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -51,15 +82,36 @@ jobs:
           cache-read-only: true
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
-      - name: Install Android SDK 35
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Install Android SDK 35 and emulator image
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'emulator' 'platform-tools' 'system-images;android-35;google_apis;x86_64'
+      - name: Create emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "no" | avdmanager create avd -n vsac-api35 -k 'system-images;android-35;google_apis;x86_64' --device 'pixel_2'
+      - name: Boot emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup emulator -avd vsac-api35 -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect > /tmp/vsac-emulator.log 2>&1 &
+          adb wait-for-device
+          until adb shell getprop sys.boot_completed | tr -d '\r' | grep -q '^1$'; do sleep 2; done
+          adb shell input keyevent 82
       - name: Run JVM unit tests
         run: gradle --no-daemon :app:testDebugUnitTest
-      - name: Build debug APK
-        run: gradle --no-daemon :app:assembleDebug
+      - name: Run Android instrumented E2E tests
+        run: gradle --no-daemon :app:connectedDebugAndroidTest
+      - name: Upload Android test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: android-instrumented-results
+          path: app/build/outputs/androidTest-results
+          if-no-files-found: ignore
       - name: Upload debug APK
+        if: always()
         uses: actions/upload-artifact@v6
         with:
           name: visual-studio-acode-debug
           path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+          if-no-files-found: ignore
