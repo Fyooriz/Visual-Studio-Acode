@@ -7,11 +7,12 @@ This change set addresses application security findings from the pre-launch audi
 - Persist AI mutation audit events locally with bounded retention.
 - Enable Core Library Desugaring and lower the Android minimum SDK target to API 21.
 - Add a restrictive Content Security Policy to the local application WebView document.
+- Disable the generic `VSACNative.httpRequest()` network path. API Studio cannot invoke native networking until a provider-scoped capability exists.
 
 ## Intentionally not resolved here
 
 - Terminal OS/container isolation and explicit CPU/memory/process quotas remain unavailable. The terminal remains `BLOCKED`.
-- The native API bridge still needs a provider-scoped network capability before it can be considered fully hardened.
+- Provider-scoped network capability is still not implemented; the generic native network boundary is now closed rather than exposed.
 - Full third-party archive inspection remains an audit task; unresolved licensing or security evidence does not enter the distributable build.
 
 ## Verification rule
