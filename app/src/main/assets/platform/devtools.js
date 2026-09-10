@@ -17,16 +17,32 @@
     } catch (_) { return '[unserializable]'; }
   }
 
+  function createProbeSource() {
+    return `(function(){
+      const safeValue=${safeValue.toString()};
+      const send=(data)=>{try{parent.postMessage({source:'VSAC',...data},'*')}catch(_){}};
+      ['log','info','warn','error','debug'].forEach(level=>{
+        const fn=console[level];
+        console[level]=function(){
+          send({kind:'console',data:{level,args:Array.from(arguments).map(safeValue)}});
+          return fn.apply(console,arguments);
+        };
+      });
+      addEventListener('error',e=>send({kind:'error',data:{message:e.message||'Script error',line:e.lineno||0,column:e.colno||0}}));
+      addEventListener('unhandledrejection',e=>send({kind:'error',data:{message:String(e.reason||'Unhandled promise rejection'),line:0,column:0}}));
+    })();`;
+  }
+
   function instrumentHtml(html) {
-    const probe = `<script>(function(){const send=(data)=>{try{parent.postMessage({source:'VSAC',...data},'*')}catch(_){}};['log','info','warn','error','debug'].forEach(level=>{const fn=console[level];console[level]=function(){send({kind:'console',data:{level,args:Array.from(arguments).map(${safeValue.toString()})}});return fn.apply(console,arguments)}});addEventListener('error',e=>send({kind:'error',data:{message:e.message||'Script error',line:e.lineno||0,column:e.colno||0}}));addEventListener('unhandledrejection',e=>send({kind:'error',data:{message:String(e.reason||'Unhandled promise rejection'),line:0,column:0}}))})();</script>`;
+    const source = createProbeSource();
+    const src = `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
+    const probe = `<script src="${src}"></script>`;
     return /<head\b[^>]*>/i.test(html)
       ? String(html).replace(/<head\b[^>]*>/i, match => match + probe)
       : probe + String(html || '');
   }
 
   function installPreviewProbe(frame) {
-    // Kept for compatibility with the original Suger-derived adapter. The preferred
-    // path for sandboxed previews is instrumentHtml(), which communicates via postMessage.
     if (!frame) return;
     try {
       const probe = () => {
