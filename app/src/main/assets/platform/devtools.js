@@ -37,9 +37,12 @@
     const source = createProbeSource();
     const src = `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
     const probe = `<script src="${src}"></script>`;
-    return /<head\b[^>]*>/i.test(html)
-      ? String(html).replace(/<head\b[^>]*>/i, match => match + probe)
-      : probe + String(html || '');
+    const policy = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' data:; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src data:; object-src 'none'; base-uri 'none'; form-action 'none';">`;
+    const input = String(html || '');
+    if (/<head\b[^>]*>/i.test(input)) {
+      return input.replace(/<head\b[^>]*>/i, match => `${match}${policy}${probe}`);
+    }
+    return `<!doctype html><html><head>${policy}${probe}</head><body>${input}</body></html>`;
   }
 
   function installPreviewProbe(frame) {
