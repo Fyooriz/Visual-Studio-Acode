@@ -40,13 +40,13 @@ function seed() {
 
 function restoreActiveFromStorage() {
   const file = state.files.get(state.activeId);
-  if (!file || typeof file.content !== 'string') return;
-  if (editor.value === file.content) return;
-  editor.value = file.content;
+  if (!file || typeof file.content !== 'string') return false;
+  if (editor.value !== file.content) editor.value = file.content;
   workspace.textContent = 'Local workspace';
   language.textContent = file.language;
   dirty.textContent = file.dirty ? 'Modified' : 'Saved';
   renderTabs(); renderGutter(); updatePosition(); runDiagnostics();
+  return true;
 }
 
 function addFile(id, lang, content) { state.files.set(id, { id, name: id, language: lang, content, dirty: false }); }
@@ -73,7 +73,7 @@ function openLanguages() {
 function openNative() { if (window.VSACNative?.openTextFile) window.VSACNative.openTextFile(); else showToast('Native file picker is unavailable in this build.'); }
 function saveCurrent() { const file = state.files.get(state.activeId); if (!file) return; file.content = editor.value; if (window.VSACNative?.saveTextFile) window.VSACNative.saveTextFile(file.content, file.name); else { file.dirty = false; dirty.textContent = 'Saved locally'; renderTabs(); persist(); } }
 function openFind() { openPanel('Find'); command.value = ''; command.placeholder = 'Search in current file…'; command.oninput = () => { const q = command.value; let count = 0; if (q) { try { count = (editor.value.match(new RegExp(escapeRegExp(q), 'g')) || []).length; } catch (_) {} } commandList.innerHTML = `<div class="result-row">${count} match${count === 1 ? '' : 'es'}</div>`; }; commandList.innerHTML = '<div class="result-row">Type to search this file.</div>'; previewBody.classList.add('hidden'); command.focus(); }
-function previewHtml() { const file = state.files.get(state.activeId); if (!file || (!/html/i.test(file.language) && !/\.html?$/i.test(file.name))) { showTool('Preview', 'Open an HTML file to use the local preview panel.'); return; } openPanel('Preview'); hideCommandArea(); previewBody.classList.remove('hidden'); previewBody.innerHTML = ''; const frame = document.createElement('iframe'); frame.className = 'preview-frame'; frame.setAttribute('sandbox', 'allow-scripts allow-forms allow-modals'); const html = window.VSACDevTools ? window.VSACDevTools.instrumentHtml(file.content) : file.content; frame.src = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`; state.previewFrame = frame; previewBody.appendChild(frame); }
+function previewHtml() { const file = state.files.get(state.activeId); if (!file || (!/html/i.test(file.language) && !/\.html?$/i.test(file.name))) { showTool('Preview', 'Open an HTML file to use the local preview panel.'); return; } openPanel('Preview'); hideCommandArea(); previewBody.classList.remove('hidden'); previewBody.innerHTML = ''; const frame = document.createElement('iframe'); frame.className = 'preview-frame'; frame.setAttribute('sandbox', 'allow-scripts allow-forms allow-modals'); const html = window.VSACDevTools ? window.VSACDevTools.instrumentHtml(file.content) : file.content; frame.srcdoc = html; state.previewFrame = frame; if (window.VSACDevTools) window.VSACDevTools.installPreviewProbe(frame); previewBody.appendChild(frame); }
 function openTerminal() { openPanel('Terminal'); command.placeholder = 'Enter a shell command…'; command.value = ''; commandList.innerHTML = '<div class="terminal-note">Terminal execution is disabled until OS/container isolation and explicit resource quotas are verified.</div>'; const run = document.createElement('button'); run.type = 'button'; run.textContent = 'Run command'; run.setAttribute('aria-label', 'Run command'); run.onclick = runTerminalCommand; commandList.appendChild(run); command.onkeydown = (event) => { if (event.key === 'Enter') runTerminalCommand(); }; previewBody.classList.add('hidden'); command.focus(); }
 function runTerminalCommand() { const value = command.value.trim(); if (!value) return; commandList.insertAdjacentHTML('beforeend', `<div class="terminal-command">$ ${escapeHtml(value)}</div>`); command.value = ''; if (!TERMINAL_UI_ENABLED) { commandList.insertAdjacentHTML('beforeend', '<div class="terminal-error">Native terminal unavailable.</div>'); return; } if (window.VSACNative?.runTerminal) window.VSACNative.runTerminal(value); else commandList.insertAdjacentHTML('beforeend', '<div class="terminal-error">Native terminal unavailable.</div>'); }
 function openApiStudio() { openPanel('API Studio'); hideCommandArea(); previewBody.classList.remove('hidden'); previewBody.innerHTML = `<div class="api-form"><div class="api-row"><select id="api-method"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option></select><input id="api-url" value="https://httpbin.org/get" placeholder="https://example.com/api"></div><textarea id="api-headers" placeholder="Headers, one per line"></textarea><textarea id="api-body" placeholder="Request body (optional)"></textarea><button id="api-send">Send request</button><pre id="api-result" class="api-result">Response will appear here.</pre></div>`; document.querySelector('#api-send').onclick = sendApiRequest; }
@@ -99,7 +99,9 @@ window.VSAC = {
   nativeTerminalResult(exitCode, output) { commandList.insertAdjacentHTML('beforeend', `<pre class="terminal-output">${escapeHtml(output || '(no output)')}</pre><div class="terminal-exit">exit ${exitCode}</div>`); },
   nativeTerminalError(message) { commandList.insertAdjacentHTML('beforeend', `<div class="terminal-error">${escapeHtml(message || 'Terminal failed')}</div>`); },
   nativeApiResult(status, headers, body, redirect) { const result = document.querySelector('#api-result'); if (result) result.textContent = [`HTTP ${status}`, redirect ? `Redirect: ${redirect}` : '', headers || '', body || ''].filter(Boolean).join('\n'); },
-  nativeApiError(message) { const result = document.querySelector('#api-result'); if (result) result.textContent = `ERROR: ${message || 'API request failed'}`; }
+  nativeApiError(message) { const result = document.querySelector('#api-result'); if (result) result.textContent = `ERROR: ${message || 'API request failed'}`; },
+  restoreActiveFromStorage,
+  editorValue: () => editor.value,
 };
 
 editor.addEventListener('input', markDirty);
@@ -110,6 +112,8 @@ editor.addEventListener('keydown', (event) => { if ((event.ctrlKey || event.meta
 panelClose.addEventListener('click', closePanel);
 window.addEventListener('pagehide', persist);
 window.addEventListener('beforeunload', persist);
+window.addEventListener('DOMContentLoaded', () => { restoreActiveFromStorage(); requestAnimationFrame(restoreActiveFromStorage); });
+window.addEventListener('load', () => { restoreActiveFromStorage(); setTimeout(restoreActiveFromStorage, 50); });
 document.querySelector('#project')?.addEventListener('click', () => window.VSACNative?.openWorkspace ? window.VSACNative.openWorkspace() : showToast('Workspace picker unavailable.'));
 document.querySelector('#save')?.addEventListener('click', saveCurrent);
 document.querySelector('#run')?.addEventListener('click', previewHtml);
