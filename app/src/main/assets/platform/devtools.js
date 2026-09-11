@@ -36,11 +36,24 @@
     })();`;
   }
 
+  function wrapInlineScriptBody(body) {
+    const payload = String(body || '');
+    return `try {\n${payload}\n} catch (error) {\n  try { parent.postMessage({ source: 'VSAC', kind: 'error', data: { message: error?.message || String(error), line: 0, column: 0 } }, '*'); } catch (_) {}\n  throw error;\n}`;
+  }
+
+  function instrumentInlineScripts(html) {
+    return String(html || '').replace(/<script(\s[^>]*)?>([\s\S]*?)<\\/script>/gi, (full, attrs, body) => {
+      const attributes = attrs || '';
+      if (/\bsrc\s*=/i.test(attributes)) return full;
+      return `<script${attributes}>${wrapInlineScriptBody(body)}</script>`;
+    });
+  }
+
   function instrumentHtml(html) {
     const source = createProbeSource();
-    const probe = `<script>${source.replace(/<\/script/gi, '<\\/script')}</script>`;
+    const probe = `<script>${source.replace(/<\\/script/gi, '<\\\\/script')}</script>`;
     const policy = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src data:; object-src 'none'; base-uri 'none'; form-action 'none';">`;
-    const input = String(html || '');
+    const input = instrumentInlineScripts(String(html || ''));
     if (/<head\b[^>]*>/i.test(input)) {
       return input.replace(/<head\b[^>]*>/i, match => `${match}${policy}${probe}`);
     }
