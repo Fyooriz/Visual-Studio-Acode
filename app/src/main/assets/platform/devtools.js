@@ -19,6 +19,7 @@
 
   function createProbeSource() {
     return `(function(){
+      'use strict';
       const safeValue=${safeValue.toString()};
       const send=(data)=>{try{parent.postMessage({source:'VSAC',...data},'*')}catch(_){}};
       ['log','info','warn','error','debug'].forEach(level=>{
@@ -28,16 +29,17 @@
           return fn.apply(console,arguments);
         };
       });
-      addEventListener('error',e=>send({kind:'error',data:{message:e.message||'Script error',line:e.lineno||0,column:e.colno||0}}));
-      addEventListener('unhandledrejection',e=>send({kind:'error',data:{message:String(e.reason||'Unhandled promise rejection'),line:0,column:0}}));
+      const reportError=(message,line,column)=>send({kind:'error',data:{message:message||'Script error',line:line||0,column:column||0}});
+      window.addEventListener('error',e=>reportError(e.message,e.lineno,e.colno));
+      window.addEventListener('unhandledrejection',e=>reportError(String(e.reason||'Unhandled promise rejection'),0,0));
+      window.onerror=(message,source,line,column)=>{reportError(message,line,column);return false;};
     })();`;
   }
 
   function instrumentHtml(html) {
     const source = createProbeSource();
-    const src = `data:text/javascript;charset=utf-8,${encodeURIComponent(source)}`;
-    const probe = `<script src="${src}"></script>`;
-    const policy = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' data:; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src data:; object-src 'none'; base-uri 'none'; form-action 'none';">`;
+    const probe = `<script>${source.replace(/<\/script/gi, '<\\/script')}</script>`;
+    const policy = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src data:; object-src 'none'; base-uri 'none'; form-action 'none';">`;
     const input = String(html || '');
     if (/<head\b[^>]*>/i.test(input)) {
       return input.replace(/<head\b[^>]*>/i, match => `${match}${policy}${probe}`);
@@ -47,8 +49,8 @@
 
   function installPreviewProbe(frame) {
     if (!frame) return;
-    try {
-      const probe = () => {
+    frame.addEventListener('load', () => {
+      try {
         const win = frame.contentWindow;
         if (!win || win.__VSAC_PROBE__) return;
         win.__VSAC_PROBE__ = true;
@@ -59,9 +61,8 @@
             original.apply(win.console, args);
           };
         });
-      };
-      probe();
-    } catch (_) {}
+      } catch (_) {}
+    }, { once: true });
   }
 
   function receive(event) {
