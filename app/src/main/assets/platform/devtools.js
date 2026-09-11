@@ -17,19 +17,53 @@
     } catch (_) { return '[unserializable]'; }
   }
 
+  function createProbeSource() {
+    return `(function(){
+      'use strict';
+      const safeValue=${safeValue.toString()};
+      const send=(data)=>{try{parent.postMessage({source:'VSAC',...data},'*')}catch(_){}};
+      ['log','info','warn','error','debug'].forEach(level=>{
+        const fn=console[level];
+        console[level]=function(){
+          send({kind:'console',data:{level,args:Array.from(arguments).map(safeValue)}});
+          return fn.apply(console,arguments);
+        };
+      });
+      const reportError=(message,line,column)=>send({kind:'error',data:{message:message||'Script error',line:line||0,column:column||0}});
+      window.addEventListener('error',e=>reportError(e.message,e.lineno,e.colno));
+      window.addEventListener('unhandledrejection',e=>reportError(String(e.reason||'Unhandled promise rejection'),0,0));
+      window.onerror=(message,source,line,column)=>{reportError(message,line,column);return false;};
+    })();`;
+  }
+
+  function wrapInlineScriptBody(body) {
+    const payload = String(body || '');
+    return `try {\n${payload}\n} catch (error) {\n  try { parent.postMessage({ source: 'VSAC', kind: 'error', data: { message: error?.message || String(error), line: 0, column: 0 } }, '*'); } catch (_) {}\n  throw error;\n}`;
+  }
+
+  function instrumentInlineScripts(html) {
+    return String(html || '').replace(/<script(\s[^>]*)?>([\s\S]*?)<\\/script>/gi, (full, attrs, body) => {
+      const attributes = attrs || '';
+      if (/\bsrc\s*=/i.test(attributes)) return full;
+      return `<script${attributes}>${wrapInlineScriptBody(body)}</script>`;
+    });
+  }
+
   function instrumentHtml(html) {
-    const probe = `<script>(function(){const send=(data)=>{try{parent.postMessage({source:'VSAC',...data},'*')}catch(_){}};['log','info','warn','error','debug'].forEach(level=>{const fn=console[level];console[level]=function(){send({kind:'console',data:{level,args:Array.from(arguments).map(${safeValue.toString()})}});return fn.apply(console,arguments)}});addEventListener('error',e=>send({kind:'error',data:{message:e.message||'Script error',line:e.lineno||0,column:e.colno||0}}));addEventListener('unhandledrejection',e=>send({kind:'error',data:{message:String(e.reason||'Unhandled promise rejection'),line:0,column:0}}))})();</script>`;
-    return /<head\b[^>]*>/i.test(html)
-      ? String(html).replace(/<head\b[^>]*>/i, match => match + probe)
-      : probe + String(html || '');
+    const source = createProbeSource();
+    const probe = `<script>${source.replace(/<\\/script/gi, '<\\\\/script')}</script>`;
+    const policy = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src data:; object-src 'none'; base-uri 'none'; form-action 'none';">`;
+    const input = instrumentInlineScripts(String(html || ''));
+    if (/<head\b[^>]*>/i.test(input)) {
+      return input.replace(/<head\b[^>]*>/i, match => `${match}${policy}${probe}`);
+    }
+    return `<!doctype html><html><head>${policy}${probe}</head><body>${input}</body></html>`;
   }
 
   function installPreviewProbe(frame) {
-    // Kept for compatibility with the original Suger-derived adapter. The preferred
-    // path for sandboxed previews is instrumentHtml(), which communicates via postMessage.
     if (!frame) return;
-    try {
-      const probe = () => {
+    frame.addEventListener('load', () => {
+      try {
         const win = frame.contentWindow;
         if (!win || win.__VSAC_PROBE__) return;
         win.__VSAC_PROBE__ = true;
@@ -40,9 +74,8 @@
             original.apply(win.console, args);
           };
         });
-      };
-      probe();
-    } catch (_) {}
+      } catch (_) {}
+    }, { once: true });
   }
 
   function receive(event) {

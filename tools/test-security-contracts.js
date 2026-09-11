@@ -18,7 +18,9 @@ const security = fs.readFileSync(securityPath, 'utf8');
 assert(nativeHttp.includes('if (!"https".equalsIgnoreCase(scheme))'), 'NativeHttp must enforce HTTPS-only URLs');
 assert(nativeHttp.includes('Only HTTPS URLs are allowed'), 'NativeHttp HTTPS rejection message missing');
 assert(!nativeHttp.includes('if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))'), 'NativeHttp must not allow plain HTTP');
-assert(mainActivity.includes('Only HTTPS URLs are allowed by the native API boundary.'), 'MainActivity HTTPS boundary missing');
+assert(mainActivity.includes('Native API network capability is disabled until provider-scoped networking is implemented.'), 'MainActivity native network bridge must remain disabled');
+assert(!mainActivity.includes('HttpURLConnection'), 'MainActivity must not expose a generic HttpURLConnection bridge');
+assert(!mainActivity.includes('import java.net.'), 'MainActivity must not import direct network APIs');
 assert(security.includes('Prefer argument arrays/process APIs over shell strings.'), 'Terminal command safety guidance missing');
 
-console.log('Security contract validation passed: HTTPS policy and terminal guidance are present.');
+console.log('Security contract validation passed: native network bridge is closed and terminal guidance is present.');
