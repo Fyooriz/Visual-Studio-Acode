@@ -10,6 +10,8 @@ const securityPath = path.join(root, 'docs', 'SECURITY_AND_LICENSES.md');
 const sourceAuditPath = path.join(root, 'docs', 'SOURCE-AUDIT-2026-09-06.md');
 const sourceManifestPath = path.join(root, 'docs', 'SOURCE-MANIFEST-2026-09-06.json');
 const aiSkillPolicyPath = path.join(root, 'docs', 'AI_SKILL_RUNTIME_POLICY.md');
+const contributingPath = path.join(root, 'CONTRIBUTING.md');
+const skillAdrPath = path.join(root, 'docs', 'adr', '0010-skill-zip-assistant-material.md');
 const allowedStatuses = new Set(['PLANNED','IMPLEMENTING','IMPLEMENTED','INTEGRATED','TESTED','VERIFIED','BLOCKED','DEPRECATED']);
 const trackedSourceContainers = ['Data apk.zip','Informasi.zip','Skill.zip'];
 const canonicalJavaFeatureMap = new Map([
@@ -67,7 +69,7 @@ for (const [jsonFeatureId, javaFeatureId] of canonicalJavaFeatureMap) {
   assert(javaEntries.get(javaFeatureId).owner === registry.features[jsonFeatureId].owner, `${jsonFeatureId}: Java owner ${javaEntries.get(javaFeatureId).owner} != JSON owner ${registry.features[jsonFeatureId].owner}`);
 }
 for (const forbiddenOwner of ['DiagnosticsPlatform', 'ExecutionEngine', 'RemoteWorkspace']) assert(!javaRegistry.includes(forbiddenOwner), `stale Java subsystem owner remains: ${forbiddenOwner}`);
-for (const doc of [architecturePath, pluginAuditPath, securityPath, sourceAuditPath, sourceManifestPath, aiSkillPolicyPath]) assert(fs.existsSync(doc), `required governance document missing: ${path.relative(root, doc)}`);
+for (const doc of [architecturePath, pluginAuditPath, securityPath, sourceAuditPath, sourceManifestPath, aiSkillPolicyPath, contributingPath, skillAdrPath]) assert(fs.existsSync(doc), `required governance document missing: ${path.relative(root, doc)}`);
 const architecture = fs.readFileSync(architecturePath, 'utf8');
 assert(architecture.includes('one owner'), 'architecture must document one-owner subsystem rule');
 assert(architecture.includes('EditorAdapter'), 'architecture must list internal integration contracts');
@@ -93,4 +95,8 @@ for (const [container, metadata] of Object.entries(sourceManifest.containers)) {
 for (const packageName of manifestPackageNames) assert(registry.sourcePolicy.sourcePackages.includes(packageName), `manifest package missing from registry sourcePackages: ${packageName}`);
 const aiSkillPolicy = fs.readFileSync(aiSkillPolicyPath, 'utf8');
 for (const term of ['AIPlatform','declarative','permission','audit event','licens']) assert(aiSkillPolicy.includes(term), `AI skill runtime policy missing ${term} coverage`);
-console.log(`Governance validation passed: ${Object.keys(registry.features).length} feature records, ${javaEntries.size} Java owner records, and ${manifestPackageNames.size} source packages checked.`);
+const contributing = fs.readFileSync(contributingPath, 'utf8');
+for (const term of ['Skill.zip','source of truth','Feature status','Security gate','Android runtime verification']) assert(contributing.includes(term), `CONTRIBUTING.md missing required policy term: ${term}`);
+const skillAdr = fs.readFileSync(skillAdrPath, 'utf8');
+for (const term of ['Assistant Workflow Material','not a runtime dependency','Conflict handling','independently audited']) assert(skillAdr.includes(term), `Skill.zip ADR missing required policy term: ${term}`);
+console.log(`Governance validation passed: ${Object.keys(registry.features).length} feature records, ${javaEntries.size} Java owner records, ${manifestPackageNames.size} source packages, and required governance docs checked.`);

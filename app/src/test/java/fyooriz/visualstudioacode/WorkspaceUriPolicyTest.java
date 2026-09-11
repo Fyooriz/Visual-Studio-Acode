@@ -25,6 +25,8 @@ public class WorkspaceUriPolicyTest {
         assertFalse(WorkspaceUriPolicy.isValidTreeUri(
                 "content://com.example.documents/tree/primary%3AProjects?query=1"));
         assertFalse(WorkspaceUriPolicy.isValidTreeUri(
+                "content://com.example.documents/tree/primary%3AProjects#fragment"));
+        assertFalse(WorkspaceUriPolicy.isValidTreeUri(
                 "file:///primary/Projects/tree/primary%3AProjects"));
     }
 
@@ -54,6 +56,16 @@ public class WorkspaceUriPolicyTest {
         assertFalse(WorkspaceUriPolicy.isWithinWorkspace(
                 TREE,
                 "file:///primary/Projects/demo.txt"));
+    }
+
+    @Test
+    public void rejectsTargetQueryAndFragment() {
+        assertFalse(WorkspaceUriPolicy.isWithinWorkspace(
+                TREE,
+                TREE + "/document/primary%3AProjects%2Fdemo%2FMain.java?query=1"));
+        assertFalse(WorkspaceUriPolicy.isWithinWorkspace(
+                TREE,
+                TREE + "/document/primary%3AProjects%2Fdemo%2FMain.java#fragment"));
     }
 
     @Test
