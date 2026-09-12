@@ -2,9 +2,7 @@ package com.fyooriz.visualstudioacode.shared.data
 
 import app.cash.sqldelight.db.SqlDriver
 
-expect class AppSqlDriverFactory {
+/** Platform-owned driver factory. Android/iOS implementations are provided at the native boundary. */
+fun interface SqlDriverProvider {
     fun create(): SqlDriver
 }
-
-fun createAppDatabase(factory: AppSqlDriverFactory): AppDatabase =
-    AppDatabase(factory.create())
