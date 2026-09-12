@@ -8,6 +8,7 @@ group = "com.fyooriz.visualstudioacode"
 version = "0.1.0-SNAPSHOT"
 
 kotlin {
+    jvm()
     androidTarget()
     iosX64()
     iosArm64()
