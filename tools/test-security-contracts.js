@@ -17,12 +17,13 @@ const mainActivity = fs.readFileSync(mainActivityPath, 'utf8');
 const manifest = fs.readFileSync(manifestPath, 'utf8');
 const security = fs.readFileSync(securityPath, 'utf8');
 
-assert(nativeHttp.includes('if (!"https".equalsIgnoreCase(scheme))'), 'NativeHttp must enforce HTTPS-only URLs');
-assert(nativeHttp.includes('Only HTTPS URLs are allowed'), 'NativeHttp HTTPS rejection message missing');
+assert(/if \(!"https"\.equalsIgnoreCase\(scheme\)\)/.test(nativeHttp), 'NativeHttp must enforce HTTPS-only URLs');
+assert(nativeHttp.includes('Only HTTPS URLs are allowed by the native API boundary'), 'NativeHttp HTTPS rejection message missing');
 assert(nativeHttp.includes('ALLOWED_METHODS'), 'NativeHttp must define an HTTP method allowlist');
 assert(nativeHttp.includes('embedded credentials'), 'NativeHttp must reject embedded URL credentials');
 assert(nativeHttp.includes('Local or reserved network targets are blocked'), 'NativeHttp must block local/reserved network targets');
 assert(nativeHttp.includes('BLOCKED_HEADERS'), 'NativeHttp must filter transport-level headers');
+assert(nativeHttp.includes('static URI validateRequest(String method, String url)'), 'NativeHttp request validation must be a reusable boundary');
 assert(mainActivity.includes('NativeHttp.request(method, urlString, rawHeaders, body)'), 'MainActivity must route outbound HTTP through NativeHttp');
 assert(!mainActivity.includes('url.openConnection()'), 'MainActivity must not own outbound HTTP connections');
 assert(manifest.includes('android:allowBackup="false"'), 'Automatic Android app backup must remain disabled until a data policy exists');
