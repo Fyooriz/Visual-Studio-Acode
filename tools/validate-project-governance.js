@@ -31,7 +31,7 @@ const canonicalJavaFeatureMap = new Map([
 ]);
 function assert(condition, message) { if (!condition) throw new Error(message); }
 const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
-assert(registry.schemaVersion === 2, 'feature-registry schemaVersion must be 2');
+assert(Number.isInteger(registry.schemaVersion) && registry.schemaVersion >= 2, 'feature-registry schemaVersion must be >= 2');
 assert(registry.product === 'Visual Studio Acode', 'feature-registry product mismatch');
 assert(registry.sourcePolicy && Array.isArray(registry.sourcePolicy.uploadedArchives), 'uploaded archive source policy missing');
 for (const archive of ['Acode.zip','Acode screenshot.zip','ace-linters-2.3.4.zip','suger-devtool-main.zip']) assert(registry.sourcePolicy.uploadedArchives.includes(archive), `missing source archive in registry: ${archive}`);

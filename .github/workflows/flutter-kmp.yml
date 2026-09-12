@@ -1,0 +1,61 @@
+name: Flutter and KMP foundation
+
+on:
+  push:
+    branches: [main, 'migration/**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Get dependencies
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze
+      - name: Unit and widget tests
+        run: flutter test --reporter expanded
+      - name: Generate Android host for APK verification
+        run: flutter create --platforms=android --org com.fyooriz.visualstudioacode .
+      - name: Build debug APK
+        run: flutter build apk --debug
+      - name: Upload Flutter debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-studio-acode-flutter-debug
+          path: flutter/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+
+  kmp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+          cache-read-only: true
+      - name: Run KMP JVM tests
+        run: gradle --no-daemon -p kmp :shared:jvmTest
+      - name: Compile KMP JVM target
+        run: gradle --no-daemon -p kmp :shared:compileKotlinJvm

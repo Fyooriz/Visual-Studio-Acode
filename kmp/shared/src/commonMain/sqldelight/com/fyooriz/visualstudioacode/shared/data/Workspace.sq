@@ -1,0 +1,24 @@
+CREATE TABLE workspace (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    root_uri TEXT NOT NULL,
+    provider_type TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+selectAll:
+SELECT id, name, root_uri, provider_type, updated_at
+FROM workspace
+ORDER BY updated_at DESC;
+
+findById:
+SELECT id, name, root_uri, provider_type, updated_at
+FROM workspace
+WHERE id = ?;
+
+upsert:
+INSERT OR REPLACE INTO workspace(id, name, root_uri, provider_type, updated_at)
+VALUES (?, ?, ?, ?, ?);
+
+deleteById:
+DELETE FROM workspace WHERE id = ?;

@@ -1,9 +1,9 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "product": "Visual Studio Acode",
   "sourcePolicy": {
     "uploadedArchives": ["Acode.zip", "Acode screenshot.zip", "ace-linters-2.3.4.zip", "suger-devtool-main.zip"],
-    "governanceDocuments": ["Prompt.md", "text.txt"],
+    "governanceDocuments": ["Prompt.md", "text.txt", "visual-studio-acode-workflow-master-command.md"],
     "sourceContainers": ["Data apk.zip", "Informasi.zip", "Skill.zip"],
     "sourcePackages": [
       "Acode-main.zip", "termux-app-master.zip", "vscode-main.zip", "Acode screenshot.zip", "Acode.zip",
@@ -22,12 +22,21 @@
       "Informasi.zip": "sha256:746d36436006c6fe80ff984d32f12c3757c156bd216c234a4f1c5ca4242cceb1",
       "Skill.zip": "sha256:f01eba20ad72b27325140648866a8025723f4041371b4e751b85e26fd4af449f"
     },
-    "rule": "Treat uploaded material as evidence/source material. Adapt useful capability behind a single internal owner; do not load overlapping plugins as independent runtimes. Unknown-license source is never copied into the distributable build until licensing is resolved. Prompt.md and text.txt are governance inputs; the repository remains the implementation source of truth. New Acode/Termux/VS Code and skill archives are audit evidence only until explicit source-level review passes."
+    "rule": "Treat uploaded material as evidence/source material. Adapt useful capability behind a single internal owner; do not load overlapping plugins as independent runtimes. Unknown-license source is never copied into the distributable build until licensing is resolved. Governance documents are authoritative only when they are part of the project authority chain; third-party Markdown/TXT is treated as evidence and audited before use."
   },
   "statusPolicy": {
     "doneRequires": ["Designed", "Implemented", "Integrated", "Buildable", "Tested", "Verified", "Documented"],
     "allowed": ["PLANNED", "IMPLEMENTING", "IMPLEMENTED", "INTEGRATED", "TESTED", "VERIFIED", "BLOCKED", "DEPRECATED"],
     "verifiedEvidence": ["build", "test", "runtime", "security"]
+  },
+  "technologyBaseline": {
+    "presentation": "Flutter/Dart",
+    "sharedCore": "Kotlin Multiplatform/Shared Kotlin",
+    "persistence": "SQLDelight",
+    "androidNative": "Kotlin; JNI/C++ only when justified",
+    "iosNative": "Swift; Metal/AVFoundation only when justified",
+    "androidMinSdk": 31,
+    "webView": "isolated preview/devtools only"
   },
   "features": {
     "editor": {"owner":"EditorPlatform","status":"IMPLEMENTED","sources":["Acode ecosystem","Acode-main.zip","vscode-main.zip","x.treesitter","jobians.lsp.client"],"evidence":{"build":"unknown","test":"partial","runtime":"unknown","security":"partial"}},
@@ -35,19 +44,24 @@
     "lsp": {"owner":"LanguagePlatform","status":"IMPLEMENTED","sources":["ace-linters-2.3.4.zip","Acode-main.zip","vscode-main.zip","jobians.lsp.client"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
     "diagnostics": {"owner":"LanguagePlatform","status":"IMPLEMENTED","sources":["ace-linters-2.3.4.zip","vscode-main.zip"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
     "formatting": {"owner":"BuildExecutionPlatform","status":"IMPLEMENTED","sources":["acode.plugin.prettier","acode.python.fmt","Acode-main.zip","vscode-main.zip"],"evidence":{"build":"unknown","test":"partial","runtime":"unknown","security":"partial"}},
-    "terminal": {"owner":"BuildExecutionPlatform","status":"BLOCKED","sources":["bajrangcoder.acodex","Acode-main.zip","termux-app-master.zip","code runner family"],"blocker":"Terminal execution is single-owner and argv-based with command allowlisting, path guards, bounded concurrency, timeout enforcement, and an output cap. It remains BLOCKED because there is no sufficiently strong OS/container isolation plus explicit CPU/memory resource quota enforcement to satisfy the project's terminal security baseline.","evidence":{"build":"pass","test":"pass-static-gates","runtime":"partial","security":"fail"}},
+    "terminal": {"owner":"BuildExecutionPlatform","status":"BLOCKED","sources":["bajrangcoder.acodex","Acode-main.zip","termux-app-master.zip","code runner family"],"blocker":"No sufficiently strong OS/container isolation plus explicit CPU/memory quota enforcement satisfies the terminal security baseline yet.","evidence":{"build":"pass","test":"pass-static-gates","runtime":"partial","security":"fail"}},
     "execution": {"owner":"BuildExecutionPlatform","status":"IMPLEMENTED","sources":["acode.code.runner","Acode-main.zip","termux-app-master.zip","acode.runner.plugin","com.alpha10.quickjsrunner","com.arfoxcode.runner_python_node"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
     "webPreview": {"owner":"WebPlatform","status":"IMPLEMENTED","sources":["acode.plugin.acelivepreview","acode.plugin.localhostpreview","Acode-main.zip","vscode-main.zip","com.techsetuapps.instantweb.livepreviewer"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
-    "apiStudio": {"owner":"WebPlatform","status":"IMPLEMENTED","sources":["acode.api.client","acode.plugin.restapi","Acode-main.zip"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
+    "apiStudio": {"owner":"WebPlatform","status":"IMPLEMENTED","sources":["acode.api.client","acode.plugin.restapi","Acode-main.zip"],"evidence":{"build":"unknown","test":"partial","runtime":"unknown","security":"partial"},"notes":"Outbound requests now route through NativeHttp policy; runtime behavior still requires Android workflow verification."},
+    "nativeHttpBoundary": {"owner":"WebPlatform","status":"IMPLEMENTING","sources":["legacy MainActivity bridge","NativeHttp.java","ADR-0002"],"evidence":{"build":"pending-ci","test":"partial-unit","runtime":"pending-device","security":"partial"},"notes":"Single outbound HTTP owner with HTTPS-only, method allowlist, embedded-credential rejection, local/reserved-target rejection, redirect disabled, bounded bodies, and transport-header filtering."},
     "devTools": {"owner":"DeveloperTools","status":"IMPLEMENTED","sources":["suger-devtool-main.zip","vscode-main.zip","sebastianjnuwu.acode.eruda"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
     "git": {"owner":"SourceControl","status":"IMPLEMENTED","sources":["acode.plugin.version.control.gitpro","Acode-main.zip","vscode-main.zip","acode.plugin.github","dev.rugved.githubmanager"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
     "database": {"owner":"DatabaseStudio","status":"IMPLEMENTED","sources":["acode.db.visualizer","com.acode.sqliteviewer","com.alis219.sqlite.viewer","vscode-main.zip"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
     "ai": {"owner":"AIPlatform","status":"IMPLEMENTED","sources":["com.heyitsaadin.ai_agent","acode.plugin.acopilot","vscode-main.zip","Skill.zip","blackbox.ai","hallofcodes.rutex.coding_agent"],"evidence":{"build":"unknown","test":"unknown","runtime":"unknown","security":"partial"}},
     "skillRegistry": {"owner":"AIPlatform","status":"IMPLEMENTED","sources":["Skill.zip"],"evidence":{"build":"unknown","test":"partial","runtime":"unknown","security":"partial"}},
-    "e2eTesting": {"owner":"QAPlatform","status":"INTEGRATED","sources":["Playwright","AndroidX Test"],"evidence":{"build":"partial","test":"pending-workflow","runtime":"pending-device","security":"partial"},"notes":"Playwright web E2E and Android instrumented E2E harnesses are integrated. VERIFIED is blocked until a successful CI/device run produces runtime evidence."},
+    "e2eTesting": {"owner":"QAPlatform","status":"INTEGRATED","sources":["Playwright","AndroidX Test"],"evidence":{"build":"partial","test":"pending-workflow","runtime":"pending-device","security":"partial"},"notes":"Harnesses exist; VERIFIED remains blocked until runtime evidence exists."},
     "remote": {"owner":"RemotePlatform","status":"PLANNED","sources":["Acode screenshot references","Acode-main.zip","vscode-main.zip"],"evidence":{"build":"n/a","test":"n/a","runtime":"n/a","security":"n/a"}},
     "androidTooling": {"owner":"ProjectTooling","status":"PLANNED","sources":["Acode screenshot references","Acode-main.zip","termux-app-master.zip"],"evidence":{"build":"n/a","test":"n/a","runtime":"n/a","security":"n/a"}},
-    "flutterTooling": {"owner":"ProjectTooling","status":"PLANNED","sources":["Acode screenshot references","vscode-main.zip"],"evidence":{"build":"n/a","test":"n/a","runtime":"n/a","security":"n/a"}}
+    "flutterTooling": {"owner":"ProjectTooling","status":"PLANNED","sources":["Acode screenshot references","vscode-main.zip"],"evidence":{"build":"n/a","test":"n/a","runtime":"n/a","security":"n/a"}},
+    "flutterPresentation": {"owner":"FlutterPresentation","status":"IMPLEMENTING","sources":["ui-ux-pro-max skill material","project design brief"],"evidence":{"build":"pending-ci","test":"pending-ci","runtime":"not integrated","security":"partial"},"notes":"Mobile-first Flutter editor shell exists in migration branch. Native host integration remains separate."},
+    "kmpCore": {"owner":"KmpCore","status":"IMPLEMENTING","sources":["project architecture","KMP migration ADR"],"evidence":{"build":"pending-ci","test":"pending-ci","runtime":"not integrated","security":"partial"},"notes":"Shared workspace/editor contracts and SQLDelight schema scaffold exist in migration branch."},
+    "sqlDelight": {"owner":"KmpCore","status":"IMPLEMENTING","sources":["SQLDelight migration scaffold"],"evidence":{"build":"pending-ci","test":"pending-ci","runtime":"not integrated","security":"partial"}},
+    "flutterKmpInterop": {"owner":"IntegrationBoundary","status":"PLANNED","sources":["MethodChannel contract scaffold"],"evidence":{"build":"pending","test":"pending","runtime":"pending","security":"pending"}}
   },
   "excludedByDefault": ["customjs","customcss","duplicate icon packs","duplicate runners","duplicate preview servers","activation/fingerprinting components from Suger DevTool","unknown-license code that has not passed review","GPLv3-only Termux application code unless distribution licensing is explicitly resolved","unreviewed executable AI skills or agent scripts","skills that request unrestricted shell/process/filesystem/network privileges"]
 }

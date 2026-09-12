@@ -3,60 +3,104 @@ package com.fyooriz.visualstudioacode;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URI;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 final class NativeHttp {
+    private static final int CONNECT_TIMEOUT_MILLIS = 10000;
+    private static final int READ_TIMEOUT_MILLIS = 15000;
+    private static final int MAX_BODY_BYTES = 2 * 1024 * 1024;
     private static final int MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
+    private static final Set<String> ALLOWED_METHODS = Set.of("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS");
+    private static final Set<String> BLOCKED_HEADERS = Set.of(
+            "connection", "content-length", "cookie", "cookie2", "host", "keep-alive",
+            "proxy-authorization", "proxy-connection", "te", "trailer", "transfer-encoding", "upgrade"
+    );
 
     private NativeHttp() {}
 
     static Result request(String method, String url, String headers, String body) throws Exception {
-        URI uri = URI.create(url);
-        String scheme = uri.getScheme();
-        if (!"https".equalsIgnoreCase(scheme)) {
-            throw new IllegalArgumentException("Only HTTPS URLs are allowed by the native API boundary");
-        }
+        URI uri = validateRequest(method, url);
         HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
-        connection.setRequestMethod(method == null || method.isBlank() ? "GET" : method.toUpperCase());
-        connection.setConnectTimeout(10000);
-        connection.setReadTimeout(15000);
+        connection.setRequestMethod(normalizeMethod(method));
+        connection.setConnectTimeout(CONNECT_TIMEOUT_MILLIS);
+        connection.setReadTimeout(READ_TIMEOUT_MILLIS);
         connection.setInstanceFollowRedirects(false);
         connection.setUseCaches(false);
-
-        if (headers != null && !headers.isBlank()) {
-            for (String line : headers.split("\\r?\\n")) {
-                int split = line.indexOf(':');
-                if (split > 0) {
-                    String name = line.substring(0, split).trim();
-                    String value = line.substring(split + 1).trim();
-                    if (!name.isEmpty()) connection.setRequestProperty(name, value);
-                }
-            }
-        }
+        applyHeaders(connection, headers);
 
         String safeBody = body == null ? "" : body;
         if (!safeBody.isEmpty() && !"GET".equalsIgnoreCase(connection.getRequestMethod()) && !"HEAD".equalsIgnoreCase(connection.getRequestMethod())) {
-            connection.setDoOutput(true);
             byte[] bytes = safeBody.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-            if (bytes.length > MAX_RESPONSE_BYTES) throw new IllegalArgumentException("Request body is too large");
-            try (java.io.OutputStream out = connection.getOutputStream()) {
-                out.write(bytes);
-            }
+            if (bytes.length > MAX_BODY_BYTES) throw new IllegalArgumentException("Request body exceeds 2 MiB limit");
+            connection.setDoOutput(true);
+            if (connection.getRequestProperty("Content-Type") == null) connection.setRequestProperty("Content-Type", "application/json");
+            try (java.io.OutputStream out = connection.getOutputStream()) { out.write(bytes); }
         }
 
-        int code = connection.getResponseCode();
-        InputStream stream = code >= 400 ? connection.getErrorStream() : connection.getInputStream();
-        String responseBody = stream == null ? "" : readUtf8(stream);
-        StringBuilder responseHeaders = new StringBuilder();
-        for (Map.Entry<String, List<String>> entry : connection.getHeaderFields().entrySet()) {
-            if (entry.getKey() == null || entry.getValue() == null) continue;
-            for (String value : entry.getValue()) responseHeaders.append(entry.getKey()).append(": ").append(value).append('\n');
+        try {
+            int code = connection.getResponseCode();
+            InputStream stream = code >= 400 ? connection.getErrorStream() : connection.getInputStream();
+            String responseBody = stream == null ? "" : readUtf8(stream);
+            StringBuilder responseHeaders = new StringBuilder();
+            for (Map.Entry<String, List<String>> entry : connection.getHeaderFields().entrySet()) {
+                if (entry.getKey() == null || entry.getValue() == null) continue;
+                for (String value : entry.getValue()) responseHeaders.append(entry.getKey()).append(": ").append(value).append('\n');
+            }
+            String redirect = connection.getHeaderField("Location");
+            return new Result(code, responseHeaders.toString(), responseBody, redirect == null ? "" : redirect);
+        } finally {
+            connection.disconnect();
         }
-        String redirect = connection.getHeaderField("Location");
-        connection.disconnect();
-        return new Result(code, responseHeaders.toString(), responseBody, redirect == null ? "" : redirect);
+    }
+
+    static URI validateRequest(String method, String url) throws Exception {
+        URI uri = URI.create(url == null ? "" : url);
+        if (!"https".equalsIgnoreCase(uri.getScheme())) {
+            throw new IllegalArgumentException("Only HTTPS URLs are allowed by the native API boundary");
+        }
+        if (uri.getHost() == null || uri.getHost().isBlank()) {
+            throw new IllegalArgumentException("A valid HTTPS host is required");
+        }
+        if (uri.getUserInfo() != null) {
+            throw new IllegalArgumentException("HTTPS URLs must not contain embedded credentials");
+        }
+        String normalizedMethod = normalizeMethod(method);
+        if (!ALLOWED_METHODS.contains(normalizedMethod)) {
+            throw new IllegalArgumentException("HTTP method is not allowed by the native API boundary");
+        }
+
+        // Resolve once and reject local/reserved addresses to reduce WebView-to-device SSRF risk.
+        for (InetAddress address : InetAddress.getAllByName(uri.getHost())) {
+            if (address.isAnyLocalAddress()
+                    || address.isLoopbackAddress()
+                    || address.isLinkLocalAddress()
+                    || address.isSiteLocalAddress()
+                    || address.isMulticastAddress()) {
+                throw new IllegalArgumentException("Local or reserved network targets are blocked");
+            }
+        }
+        return uri;
+    }
+
+    static String normalizeMethod(String method) {
+        return method == null || method.isBlank() ? "GET" : method.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private static void applyHeaders(HttpURLConnection connection, String rawHeaders) {
+        if (rawHeaders == null || rawHeaders.isBlank()) return;
+        for (String line : rawHeaders.split("\\r?\\n")) {
+            int split = line.indexOf(':');
+            if (split <= 0) continue;
+            String name = line.substring(0, split).trim();
+            String value = line.substring(split + 1).trim();
+            if (name.isEmpty() || BLOCKED_HEADERS.contains(name.toLowerCase(Locale.ROOT))) continue;
+            connection.setRequestProperty(name, value);
+        }
     }
 
     private static String readUtf8(InputStream stream) throws Exception {
