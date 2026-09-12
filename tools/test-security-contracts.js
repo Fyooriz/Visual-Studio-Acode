@@ -18,7 +18,7 @@ const manifest = fs.readFileSync(manifestPath, 'utf8');
 const security = fs.readFileSync(securityPath, 'utf8');
 
 assert(nativeHttp.includes('static URI validateRequest(String method, String url)'), 'NativeHttp must expose a reusable request validation boundary');
-assert(nativeHttp.includes('equalsIgnoreCase(scheme)'), 'NativeHttp must validate the URL scheme');
+assert(nativeHttp.includes('"https".equalsIgnoreCase(uri.getScheme())'), 'NativeHttp must validate the URL scheme');
 assert(nativeHttp.includes('Only HTTPS URLs are allowed by the native API boundary'), 'NativeHttp HTTPS rejection message missing');
 assert(nativeHttp.includes('ALLOWED_METHODS'), 'NativeHttp must define an HTTP method allowlist');
 assert(nativeHttp.includes('embedded credentials'), 'NativeHttp must reject embedded URL credentials');
