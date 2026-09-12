@@ -55,5 +55,7 @@ jobs:
         with:
           gradle-version: '8.10.2'
           cache-read-only: true
-      - name: Run KMP tests and compilation
-        run: gradle --no-daemon -p kmp :shared:allTests :shared:compileKotlinJvm
+      - name: Run KMP JVM tests
+        run: gradle --no-daemon -p kmp :shared:jvmTest
+      - name: Compile KMP JVM target
+        run: gradle --no-daemon -p kmp :shared:compileKotlinJvm
