@@ -55,6 +55,23 @@ class _EditorWorkspaceScreenState extends State<EditorWorkspaceScreen> {
         final wide = constraints.maxWidth >= 840;
         final tablet = constraints.maxWidth >= 600;
 
+        final content = wide
+            ? Row(
+                children: [
+                  SizedBox(width: 280, child: _buildExplorer(context)),
+                  Expanded(child: _buildEditor(context, tablet)),
+                  if (_selectedTool != 0)
+                    SizedBox(width: 320, child: _buildToolPanel(context)),
+                ],
+              )
+            : Column(
+                children: [
+                  Expanded(child: _buildEditor(context, tablet)),
+                  if (_selectedTool != 0)
+                    SizedBox(height: 220, child: _buildToolPanel(context)),
+                ],
+              );
+
         return Scaffold(
           appBar: AppBar(
             titleSpacing: 16,
@@ -72,15 +89,7 @@ class _EditorWorkspaceScreenState extends State<EditorWorkspaceScreen> {
               ),
             ],
           ),
-          body: Row(
-            children: [
-              if (wide)
-                SizedBox(width: 280, child: _buildExplorer(context)),
-              Expanded(child: _buildEditor(context, tablet)),
-              if (wide && _selectedTool != 0)
-                SizedBox(width: 320, child: _buildToolPanel(context)),
-            ],
-          ),
+          body: content,
           bottomNavigationBar: wide
               ? null
               : NavigationBar(
