@@ -9,65 +9,17 @@ Keep the Acode-like mobile editing experience while replacing the plugin pile wi
 ```text
 Visual Studio Acode
 ├── App Shell
-│   ├── Navigation / panels
-│   ├── Tabs / split editor
-│   ├── Command palette
-│   └── Settings
 ├── Workspace Core
-│   ├── File system abstraction
-│   ├── Project/workspace state
-│   ├── Search / replace
-│   └── Recent files / recovery
 ├── Editor Platform
-│   ├── Ace-compatible editor adapter
-│   ├── syntax/highlighting
-│   ├── snippets / completion
-│   ├── breadcrumbs
-│   └── gestures / mobile input
 ├── Language Platform
-│   ├── LSP broker
-│   ├── language adapters
-│   ├── diagnostics
-│   └── semantic features
 ├── Build & Execution
-│   ├── formatter broker
-│   ├── linter broker
-│   ├── task runner
-│   └── terminal backend
 ├── Web Platform
-│   ├── local server
-│   ├── preview
-│   └── web runtime bridge
 ├── Developer Tools
-│   ├── console
-│   ├── debugger
-│   ├── Elements/DOM
-│   ├── styles
-│   ├── network
-│   ├── storage
-│   └── device emulation
 ├── Source Control
-│   ├── Git engine
-│   ├── diff / history
-│   └── GitHub adapter
 ├── Database Studio
-│   ├── SQLite
-│   ├── SQL editor
-│   └── visualizer
 ├── AI Platform
-│   ├── provider adapters
-│   ├── chat / edit / explain
-│   ├── agent loop
-│   └── workspace permission gate
 ├── Remote
-│   ├── SSH
-│   ├── SFTP
-│   └── remote workspace adapter
 └── Project Tooling
-    ├── Android
-    ├── Kotlin/Java/XML
-    ├── Flutter/Dart
-    └── templates/packages
 ```
 
 ## Integration contracts
@@ -89,6 +41,7 @@ SourceControl
 DatabaseProvider
 AIProvider
 RemoteFileSystem
+NativeHttpClient
 ```
 
 The first implementation may be simple. The contract is what prevents future feature additions from recreating the observed Acode runtime conflicts.
@@ -97,29 +50,29 @@ The first implementation may be simple. The contract is what prevents future fea
 
 `LanguageServiceBroker` is owned by `LanguagePlatform`. It does not bundle or launch a language server process; adapters remain responsible for their transport/runtime. The broker provides the shared lifecycle boundary: unique provider registration, a configurable maximum number of active providers, in-flight request tracking, per-request timeout enforcement, explicit cancellation, provider unregister, and shutdown cancellation.
 
-This keeps resource policy in one owner and prevents each language adapter from inventing a separate process/request lifecycle. A provider without a reviewed runtime is not activated merely because it is listed in `LanguageCatalog`.
-
 ### Terminal contract
 
-`TerminalBackend` currently defines a one-shot command execution boundary returning a structured `TerminalResult`. This matches the native terminal implementation available on Android today: validated argv, explicit private workspace, bounded concurrency, timeout enforcement, and output limits.
+`TerminalBackend` currently defines a one-shot command execution boundary returning a structured `TerminalResult`. Interactive terminal sessions are deliberately not exposed until an implementation can satisfy the sandbox/resource security baseline.
 
-Interactive terminal sessions (`start/write/stop`) are deliberately not exposed by the current contract until a sandboxed session implementation can satisfy the same security baseline. Adding those methods prematurely would create a misleading abstraction and duplicate ownership.
+### Native HTTP contract
+
+`NativeHttp` is the single outbound HTTP implementation used by the legacy WebView bridge. It accepts HTTPS only, validates the request method, rejects embedded URL credentials, blocks local/reserved network targets after DNS resolution, disables automatic redirects, bounds request/response sizes, and filters transport-level headers that must not be caller-controlled.
+
+This is migration hardening, not a claim that the legacy WebView is fully trusted. Preview/devtools content must not receive the API bridge implicitly.
 
 ## Selected source material
 
 ### `ace-linters-2.3.4.zip`
 
-Candidate for the lint/diagnostic foundation because it is already organized as a workspace with Ace integration. Reuse is conditional on license and dependency review.
+Candidate for the lint/diagnostic foundation. Reuse is conditional on license and dependency review.
 
 ### `suger-devtool-main.zip`
 
-Candidate for the Developer Tools feature set: JavaScript debugging, DOM inspection, CSS/computed styles, network tooling, storage/application inspection, and mobile-oriented tooling.
-
-The source snapshot also contains activation/fingerprinting/cloud dependencies. Those parts are **not** part of the target architecture; only independently justified technical functionality may be adapted.
+Candidate for Developer Tools. Activation/fingerprinting/cloud dependencies are excluded from the target architecture; only independently justified technical functionality may be adapted.
 
 ## Conflict policy
 
-Known conflict examples from the uploaded runtime log include duplicate plugin globals, duplicate editor extension compartments, DOM removal errors, missing paths and repeated fetch failures. The solution is architectural isolation plus one owner per capability, not another layer of plugin ordering.
+Known conflict examples include duplicate plugin globals, duplicate editor extension compartments, DOM removal errors, missing paths and repeated fetch failures. The solution is architectural isolation plus one owner per capability, not another layer of plugin ordering.
 
 ## Security boundaries
 
@@ -128,6 +81,8 @@ Known conflict examples from the uploaded runtime log include duplicate plugin g
 - Remote filesystem access is isolated from local workspace state.
 - Secrets/tokens are stored outside source files and never injected into project exports.
 - Web preview content is treated as untrusted input.
+- Native HTTP is a constrained capability boundary, not a general-purpose WebView networking escape hatch.
+- Automatic Android app backup is disabled until persisted data has an explicit backup/data-classification policy.
 
 ## Migration target — Flutter / KMP / native
 
