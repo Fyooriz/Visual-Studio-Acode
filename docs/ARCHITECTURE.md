@@ -128,3 +128,44 @@ Known conflict examples from the uploaded runtime log include duplicate plugin g
 - Remote filesystem access is isolated from local workspace state.
 - Secrets/tokens are stored outside source files and never injected into project exports.
 - Web preview content is treated as untrusted input.
+
+## Migration target — Flutter / KMP / native
+
+The product technology baseline is moving from the legacy Android Java/WebView foundation to an Android-first multiplatform architecture without a big-bang rewrite.
+
+```text
+Flutter / Dart
+    │
+    ├── App Shell presentation
+    ├── Workspace / Editor UI
+    ├── Terminal / Preview / Git UI
+    └── presentation state
+            │
+            │ MethodChannel / JSON / ProtoBuf / JNI
+            ▼
+Kotlin Multiplatform / Shared Kotlin
+    │
+    ├── shared domain and application logic
+    ├── workspace/editor contracts
+    ├── project state
+    └── SQLDelight persistence
+            │
+            │ expect / actual
+       ┌────┴──────────────┐
+       ▼                   ▼
+Android native          iOS native
+Kotlin                  Swift
+JNI/C++ when justified  Metal/AVFoundation when justified
+```
+
+Rules:
+
+1. Flutter is the presentation owner; it must not duplicate shared business rules.
+2. KMP is the shared core owner; platform code implements only platform-specific behavior.
+3. SQLDelight is the shared persistence owner.
+4. WebView is not the application shell and remains restricted to isolated preview/devtools capability.
+5. JNI/C++ is not a default dependency; introduce it only for a measured native/hardware requirement.
+6. Android minimum SDK target is 31 for the new product baseline.
+7. The legacy Android foundation remains in place until equivalent migration slices have build/test/runtime evidence.
+
+The detailed migration decision is recorded in `docs/ADR-0001-flutter-kmp-migration.md` and the technology constraints in `docs/TECH_STACK.md`.
